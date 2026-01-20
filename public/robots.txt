@@ -1,0 +1,13 @@
+# robots.txt para donegro.com
+
+User-agent: *
+Allow: /
+Allow: /productos
+Allow: /[slug]
+
+Disallow: /admin
+Disallow: /owner
+Disallow: /owner/*
+Disallow: /api/
+
+Sitemap: https://www.donegro.com/sitemap.xml
