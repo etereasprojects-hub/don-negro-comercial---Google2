@@ -117,15 +117,15 @@ export default function Header() {
             ) : (
               <>
                 <Image
-                  src="/whatsapp_image_2025-12-11_at_20.49.07.jpeg"
+                  src="/logo.png"
                   alt={storeName}
                   width={60}
                   height={60}
-                  className="rounded-lg"
+                  className="rounded-lg object-contain"
                 />
                 <div>
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-[#D91E7A] to-[#6B4199] bg-clip-text text-transparent">
-                    {storeName}
+                    {storeName || 'Don Negro Comercial'}
                   </h1>
                 </div>
               </>

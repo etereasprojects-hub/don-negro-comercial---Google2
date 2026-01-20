@@ -19,6 +19,11 @@ export const metadata: Metadata = {
     template: '%s | Don Negro Comercial'
   },
   description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles, indumentaria deportiva y aire acondicionado en Asunción, Paraguay. Calidad garantizada y atención personalizada. Compra al contado o a crédito.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
   keywords: [
     'Don Negro Comercial',
     'comercial Paraguay',
