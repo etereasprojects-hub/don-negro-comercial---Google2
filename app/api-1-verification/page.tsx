@@ -57,7 +57,6 @@ export default function ApiVerificationPage() {
     };
   }, [isAuthenticated]);
 
-  // Fixed React namespace error by importing React
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -240,7 +239,8 @@ export default function ApiVerificationPage() {
               <div className="text-2xl font-bold text-purple-600">{stats.outgoing}</div>
               <div className="text-sm text-gray-600">Enviadas</div>
             </CardContent>
-          </div>
+          </Card>
+        </div>
 
         <Card>
           <CardHeader>
