@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -18,7 +19,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'casa-americana.b-cdn.net' }
     ],
   },
-  swcMinify: true
+  // Desactivamos swcMinify temporalmente debido a un bug en la minificación de dependencias (Radix UI)
+  // que causa el error "SyntaxError: missing ) after argument list"
+  swcMinify: false
 };
 
 module.exports = nextConfig;

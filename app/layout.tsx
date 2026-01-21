@@ -86,12 +86,13 @@ export const metadata: Metadata = {
 
 /**
  * RootLayout component for the application.
- * Fixed: children is made optional to resolve type mismatch errors when the component is referenced without props.
+ * Fixed: children is made required to match Next.js App Router expectations and fix type mismatch errors.
  */
 export default function RootLayout({
   children,
 }: {
-  children?: React.ReactNode;
+  // Fix: children must be required in Next.js layouts
+  children: React.ReactNode;
 }) {
   return (
     <html lang="es">
