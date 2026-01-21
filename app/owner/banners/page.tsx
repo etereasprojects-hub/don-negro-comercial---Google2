@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AdminHeader from "@/components/admin/AdminHeader";
@@ -129,6 +129,7 @@ export default function BannersPage() {
     setUploadMode("file");
   };
 
+  // Fixed React namespace error by importing React
   const handleDesktopFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -141,6 +142,7 @@ export default function BannersPage() {
     }
   };
 
+  // Fixed React namespace error by importing React
   const handleMobileFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {

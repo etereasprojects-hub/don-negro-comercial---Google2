@@ -1,3 +1,5 @@
+
+import React from 'react';
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
@@ -20,9 +22,15 @@ export const metadata: Metadata = {
   },
   description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles, indumentaria deportiva y aire acondicionado en Asunción, Paraguay. Calidad garantizada y atención personalizada. Compra al contado o a crédito.',
   icons: {
-    icon: '/logo.png',
-    shortcut: '/logo.png',
-    apple: '/logo.png',
+    icon: [
+      { url: '/favicon.png', type: 'image/png' },
+      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.png', sizes: '16x16', type: 'image/png' },
+    ],
+    shortcut: '/favicon.png',
+    apple: [
+      { url: '/favicon.png', sizes: '180x180', type: 'image/png' },
+    ],
   },
   keywords: [
     'Don Negro Comercial',
@@ -76,14 +84,18 @@ export const metadata: Metadata = {
   },
 };
 
+// Fixed React namespace error by importing React
+// Fixed children type error by making it optional to handle potential empty prop calls
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
     <html lang="es">
       <head>
+        <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL!} crossOrigin="anonymous" />
         <link rel="preconnect" href="https://casa-americana.b-cdn.net" crossOrigin="anonymous" />

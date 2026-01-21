@@ -1,5 +1,7 @@
+import React from 'react';
 import { cn } from '@/lib/utils';
 
+// Fixed React namespace error by importing React
 function Skeleton({
   className,
   ...props

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   Dialog,
@@ -165,6 +165,7 @@ export default function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImport
     return products;
   };
 
+  // Fixed React namespace error by importing React
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
     if (!uploadedFile) return;

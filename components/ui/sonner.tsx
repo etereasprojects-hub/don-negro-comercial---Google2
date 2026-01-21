@@ -1,8 +1,10 @@
 'use client';
 
+import React from 'react';
 import { useTheme } from 'next-themes';
 import { Toaster as Sonner } from 'sonner';
 
+// Fixed React namespace error by importing React
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {

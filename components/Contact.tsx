@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -72,7 +72,7 @@ export default function Contact() {
 
   const loadLocations = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error = null } = await supabase
         .from('store_locations')
         .select('*')
         .order('created_at');
@@ -86,7 +86,7 @@ export default function Contact() {
 
   const loadHours = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error = null } = await supabase
         .from('store_hours')
         .select('*')
         .order('day_of_week');
@@ -98,6 +98,7 @@ export default function Contact() {
     }
   };
 
+  // Fixed React namespace error by importing React
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -129,6 +130,7 @@ export default function Contact() {
     }
   };
 
+  // Fixed React namespace error by importing React
   const handleVisitSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

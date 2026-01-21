@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ShoppingCart, Search, ChevronLeft, ChevronRight, Laptop, Refrigerator, Sofa, Shirt } from 'lucide-react';
@@ -48,6 +48,7 @@ export default function Hero() {
     }
   };
 
+  // Fixed React namespace error by importing React
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {

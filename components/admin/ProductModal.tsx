@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { calculatePrices, formatCurrency } from "@/lib/pricing";
 import {
@@ -250,6 +250,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
     });
   };
 
+  // Fixed React namespace error by importing React
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);

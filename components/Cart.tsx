@@ -1,14 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, X, Minus, Plus } from "lucide-react";
+import { ShoppingCart, X, Minus, Plus, CreditCard } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
+
+interface CartItem {
+  id: string;
+  nombre: string;
+  precio: number;
+  imagen_url: string;
+  cantidad: number;
+}
 
 interface CartProps {
   open?: boolean;
@@ -36,25 +44,46 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("orders").insert([
-        {
-          customer_name: customerData.name,
-          customer_email: customerData.email,
-          customer_phone: customerData.phone,
-          customer_address: customerData.address,
+      // 1. Guardar el pedido internamente primero
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert([
+          {
+            customer_name: customerData.name,
+            customer_email: customerData.email,
+            customer_phone: customerData.phone,
+            customer_address: customerData.address,
+            items: items,
+            total: total,
+            status: "pendiente",
+          },
+        ])
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // 2. Llamar a la Edge Function para generar el pago en Pagopar
+      const { data: payData, error: payError } = await supabase.functions.invoke('pagopar-create-order', {
+        body: { 
+          orderId: order.id,
+          customer: customerData,
           items: items,
-          total: total,
-          status: "pendiente",
-        },
-      ]);
+          total: total
+        }
+      });
 
-      if (error) throw error;
+      if (payError || !payData?.url) {
+        console.error("Error Pagopar:", payError || payData);
+        alert("Pedido guardado, pero hubo un problema al conectar con la pasarela de pago. Un asesor te contactará.");
+        clearCart();
+        setIsOpen(false);
+        return;
+      }
 
-      alert("¡Pedido realizado con éxito! Nos pondremos en contacto contigo pronto.");
-      clearCart();
-      setShowCheckout(false);
-      setIsOpen(false);
-      setCustomerData({ name: "", email: "", phone: "", address: "" });
+      // 3. Redirigir a Pagopar
+      window.location.href = payData.url;
+      
     } catch (error) {
       console.error("Error creating order:", error);
       alert("Error al realizar el pedido. Por favor, intenta de nuevo.");
@@ -158,6 +187,10 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
           </div>
         ) : (
           <form onSubmit={handleCheckout} className="py-4 space-y-4">
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4 flex items-center gap-3">
+              <CreditCard className="text-blue-600" size={20} />
+              <p className="text-xs text-blue-800">Serás redirigido a la pasarela segura de <strong>Pagopar</strong> para finalizar tu pago.</p>
+            </div>
             <div>
               <Label htmlFor="name">Nombre Completo *</Label>
               <Input
@@ -177,16 +210,17 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
               />
             </div>
             <div>
-              <Label htmlFor="email">Correo Electrónico</Label>
+              <Label htmlFor="email">Correo Electrónico *</Label>
               <Input
                 id="email"
                 type="email"
                 value={customerData.email}
                 onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
+                required
               />
             </div>
             <div>
-              <Label htmlFor="address">Dirección *</Label>
+              <Label htmlFor="address">Dirección de Entrega *</Label>
               <Input
                 id="address"
                 value={customerData.address}
@@ -197,7 +231,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
 
             <div className="border-t pt-4 space-y-2">
               <div className="flex justify-between font-bold">
-                <span>Total:</span>
+                <span>Total a Pagar:</span>
                 <span className="text-pink-600">₲ {total.toLocaleString("es-PY")}</span>
               </div>
             </div>
@@ -212,7 +246,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 Volver
               </Button>
               <Button type="submit" disabled={loading} className="flex-1 bg-pink-600 hover:bg-pink-700">
-                {loading ? "Procesando..." : "Confirmar Pedido"}
+                {loading ? "Procesando..." : "Pagar con Pagopar"}
               </Button>
             </div>
           </form>

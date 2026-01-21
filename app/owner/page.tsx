@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ export default function OwnerLogin() {
   const [error, setError] = useState("");
   const router = useRouter();
 
+  // Fixed React namespace error by importing React
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
 

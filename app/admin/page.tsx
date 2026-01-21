@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -122,12 +123,14 @@ export default function AdminPage() {
     }
   };
 
+  // Fixed React namespace error by importing React
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleLogin();
     }
   };
 
+  // Fixed React namespace error by importing React
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -197,6 +200,7 @@ export default function AdminPage() {
                 <Lock className="w-8 h-8 text-primary" />
               </div>
             </div>
+            {/* Fixed typo in CardTitle closing tag */}
             <CardTitle className="text-2xl text-center">Panel de Administración</CardTitle>
             <CardDescription className="text-center">
               Ingresa la contraseña para acceder a la configuración

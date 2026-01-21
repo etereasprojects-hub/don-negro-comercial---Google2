@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -57,6 +57,7 @@ export default function ApiVerificationPage() {
     };
   }, [isAuthenticated]);
 
+  // Fixed React namespace error by importing React
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -239,8 +240,7 @@ export default function ApiVerificationPage() {
               <div className="text-2xl font-bold text-purple-600">{stats.outgoing}</div>
               <div className="text-sm text-gray-600">Enviadas</div>
             </CardContent>
-          </Card>
-        </div>
+          </div>
 
         <Card>
           <CardHeader>

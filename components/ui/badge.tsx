@@ -23,10 +23,12 @@ const badgeVariants = cva(
   }
 );
 
+// Fixed BadgeProps by explicitly allowing className and using correct React namespace
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {
   variant?: 'default' | 'secondary' | 'destructive' | 'outline';
+  className?: string;
 }
 
 function Badge({ className, variant, ...props }: BadgeProps) {

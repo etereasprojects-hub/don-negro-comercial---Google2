@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -316,6 +316,7 @@ export default function ChatWidget({ open: controlledOpen, onOpenChange, hideTri
     setLoading(false);
   };
 
+  // Fixed React namespace error by importing React
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();

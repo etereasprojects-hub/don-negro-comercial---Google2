@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   Dialog,
@@ -84,6 +84,7 @@ export default function BulkEditModal({
     });
   };
 
+  // Fixed React namespace error by importing React
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);

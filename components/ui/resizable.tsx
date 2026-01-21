@@ -1,10 +1,12 @@
 'use client';
 
+import React from 'react';
 import { GripVertical } from 'lucide-react';
 import * as ResizablePrimitive from 'react-resizable-panels';
 
 import { cn } from '@/lib/utils';
 
+// Fixed React namespace error by importing React
 const ResizablePanelGroup = ({
   className,
   ...props
@@ -20,6 +22,7 @@ const ResizablePanelGroup = ({
 
 const ResizablePanel = ResizablePrimitive.Panel;
 
+// Fixed React namespace error by importing React
 const ResizableHandle = ({
   withHandle,
   className,
