@@ -17,17 +17,15 @@ export async function POST(request: Request) {
       const pagado = pago.pagado === true || pago.pagado === "true";
       const cancelado = pago.cancelado === true || pago.cancelado === "true";
 
-      // Obtener datos del pedido original para el registro en sales
-      const { data: orderData, error: orderError } = await supabaseAdmin
+      const { data: orderData, error: fetchError } = await supabaseAdmin
         .from('orders')
         .select('*')
         .eq('id', orderId)
         .single();
 
-      if (orderError) {
-        console.error("Error obteniendo pedido en webhook:", orderError);
-        // Retornamos 200 para que Pagopar no reintente infinitamente si el pedido no existe por alguna razón
-        return NextResponse.json({ status: "error", message: "Pedido no encontrado" }, { status: 200 });
+      if (fetchError || !orderData) {
+        console.error("Error buscando pedido en webhook:", fetchError);
+        return NextResponse.json({ error: "Pedido no encontrado" }, { status: 200 }); // Retornar 200 para no reintentar algo inexistente
       }
 
       if (pagado) {
@@ -55,16 +53,16 @@ export async function POST(request: Request) {
             payment_method: 'pagopar',
             status: 'completada'
           });
-          
-        if (saleError) console.error("Error insertando venta completada:", saleError);
+        
+        if (saleError) console.error("Error registrando venta en webhook:", saleError);
 
       } else if (cancelado) {
-        // 1. Marcar pedido como rechazado
+        // 1. Actualizar el pedido a rechazado
         await supabaseAdmin
           .from('orders')
           .update({ status: 'rechazado', updated_at: new Date().toISOString() })
           .eq('id', orderId);
-
+          
         // 2. Registrar Venta Rechazada
         const { error: saleError } = await supabaseAdmin
           .from('sales')
@@ -80,7 +78,7 @@ export async function POST(request: Request) {
             status: 'rechazada'
           });
           
-        if (saleError) console.error("Error insertando venta rechazada:", saleError);
+        if (saleError) console.error("Error registrando venta rechazada en webhook:", saleError);
       }
     }
 

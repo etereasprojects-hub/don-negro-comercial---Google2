@@ -25,7 +25,6 @@ export async function POST(request: Request) {
     });
 
     const result = await response.json();
-    console.log("Respuesta Consulta Pagopar:", result);
 
     if (result.respuesta === "OK" && result.resultado && result.resultado.length > 0) {
       const pedido = result.resultado[0];
@@ -36,12 +35,12 @@ export async function POST(request: Request) {
       if (statusPagopar === true || statusPagopar === "true") finalStatus = "pagado";
       if (pedido.cancelado === true || pedido.cancelado === "true") finalStatus = "rechazado";
 
-      // Actualizar en Supabase
       const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
 
+      // Actualizar pedido
       await supabaseAdmin
         .from('orders')
         .update({ 
@@ -51,23 +50,22 @@ export async function POST(request: Request) {
         })
         .eq('id', comercioId);
 
-      // Si está pagado, asegurar que exista el registro en sales
+      // Si está pagado, asegurar que exista el registro en sales (idempotente)
       if (finalStatus === "pagado") {
-        const { data: orderData } = await supabaseAdmin
-          .from('orders')
-          .select('*')
-          .eq('id', comercioId)
-          .single();
+        const { data: existingSale } = await supabaseAdmin
+          .from('sales')
+          .select('id')
+          .eq('order_id', comercioId)
+          .maybeSingle();
 
-        if (orderData) {
-          // Verificar si ya existe para evitar duplicados (idempotencia)
-          const { data: existingSale } = await supabaseAdmin
-            .from('sales')
-            .select('id')
-            .eq('order_id', orderData.id)
-            .maybeSingle();
+        if (!existingSale) {
+          const { data: orderData } = await supabaseAdmin
+            .from('orders')
+            .select('*')
+            .eq('id', comercioId)
+            .single();
 
-          if (!existingSale) {
+          if (orderData) {
             await supabaseAdmin.from('sales').insert({
               order_id: orderData.id,
               customer_name: orderData.customer_name,

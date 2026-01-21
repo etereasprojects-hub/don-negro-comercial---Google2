@@ -87,13 +87,15 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
         return;
       }
 
-      // 3. Guardar hash en localStorage por seguridad
+      // 3. Guardar hash en localStorage para verificación posterior
       if (payData.hash) {
         localStorage.setItem('last_pagopar_hash', payData.hash);
       }
 
-      // 4. Limpiar carrito y redirigir
+      // 4. Limpiar el carrito ANTES de salir
       clearCart();
+
+      // 5. Redirigir a Pagopar
       window.location.href = payData.url;
       
     } catch (error) {
