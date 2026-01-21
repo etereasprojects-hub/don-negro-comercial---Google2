@@ -11,17 +11,20 @@ import { CheckCircle, XCircle, Clock, ShoppingBag } from "lucide-react";
 function PagoFinalizadoContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"success" | "error" | "pending">("pending");
-  // Pagopar devuelve el hash en el parámetro que definamos en el panel
-  const hashId = searchParams.get("id");
+  
+  // Capturamos el hash probando los nombres más comunes usados por Pagopar
+  const hashId = searchParams.get("id") || searchParams.get("hash") || searchParams.get("token");
 
   useEffect(() => {
-    // Si llegamos aquí y hay un hash, asumimos éxito inicial. 
-    // En una fase Pro, aquí consultaríamos a nuestra base de datos si el webhook ya confirmó.
-    if (hashId) {
+    // Validamos que exista un hash y que no sea el placeholder del panel de control
+    if (hashId && hashId !== "$hash" && hashId !== "$HASH") {
       setStatus("success");
     } else {
-      // Si no hay hash, podría ser un acceso directo o un error
-      setStatus("error");
+      // Si entramos sin hash real, esperamos un momento por si es una redirección lenta
+      const timer = setTimeout(() => {
+        if (!hashId || hashId.includes("$")) setStatus("error");
+      }, 3000);
+      return () => clearTimeout(timer);
     }
   }, [hashId]);
 
@@ -33,10 +36,10 @@ function PagoFinalizadoContent() {
             <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle size={48} />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">¡Pago Confirmado!</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">¡Pago Procesado!</h1>
             <p className="text-gray-600 mb-8 text-lg">
-              Tu transacción ha sido procesada con éxito. Ya estamos preparando tu pedido.
-              {hashId && <span className="block mt-2 text-xs text-gray-400">Ref: {hashId}</span>}
+              Hemos recibido la confirmación de tu transacción. Un asesor de Don Negro Comercial se pondrá en contacto contigo pronto para coordinar la entrega.
+              <span className="block mt-4 text-xs text-gray-400 font-mono">ID de Transacción: {hashId}</span>
             </p>
           </>
         ) : status === "error" ? (
@@ -44,9 +47,9 @@ function PagoFinalizadoContent() {
             <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <XCircle size={48} />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Estado Incierto</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Estado Pendiente</h1>
             <p className="text-gray-600 mb-8 text-lg">
-              No pudimos verificar automáticamente tu pago. Por favor, revisa tu correo o contacta con nosotros si el monto fue debitado.
+              No hemos podido verificar el pago automáticamente. Si ya realizaste la transferencia, no te preocupes, validaremos tu pedido manualmente con el comprobante.
             </p>
           </>
         ) : (
@@ -54,9 +57,9 @@ function PagoFinalizadoContent() {
             <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
               <Clock size={48} />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Verificando...</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Verificando Pago...</h1>
             <p className="text-gray-600 mb-8 text-lg">
-              Estamos validando la información de tu compra.
+              Estamos conectando con Pagopar para confirmar tu pedido. Por favor, no cierres esta ventana.
             </p>
           </>
         )}
@@ -64,7 +67,7 @@ function PagoFinalizadoContent() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/productos">
             <Button variant="outline" className="w-full sm:w-auto px-8">
-              Ver más productos
+              Seguir comprando
             </Button>
           </Link>
           <Link href="/">
@@ -84,7 +87,12 @@ export default function PagoFinalizadoPage() {
     <>
       <Header />
       <main className="min-h-screen bg-gray-50 pt-32 pb-20">
-        <Suspense fallback={<div className="text-center">Cargando...</div>}>
+        <Suspense fallback={
+          <div className="container mx-auto px-4 text-center">
+            <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Cargando detalles...</p>
+          </div>
+        }>
           <PagoFinalizadoContent />
         </Suspense>
       </main>

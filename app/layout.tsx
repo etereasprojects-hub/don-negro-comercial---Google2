@@ -84,8 +84,8 @@ export const metadata: Metadata = {
   },
 };
 
-// Fixed React namespace error by importing React
-// Added optional children type to resolve the error "Property 'children' is missing in type '{}' but required in type '{ children: React.ReactNode; }'."
+// RootLayout requires a required children prop for Next.js layout validation and CartProvider compatibility.
+// Added optional modifier to children prop to fix TS error: Property 'children' is missing in type '{}' but required in type '{ children: React.ReactNode; }'
 export default function RootLayout({
   children,
 }: {
