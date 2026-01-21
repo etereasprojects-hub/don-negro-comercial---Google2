@@ -37,11 +37,15 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
     email: "",
     phone: "",
     address: "",
-    documento: "", // Nuevo campo obligatorio para Pagopar
+    documento: "",
   });
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!customerData.documento) {
+      alert("La Cédula de Identidad es obligatoria para procesar el pago.");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -71,8 +75,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
         body: JSON.stringify({ 
           orderId: order.id,
           customer: customerData,
-          items: items,
-          total: total
+          items: items
         })
       });
 
@@ -80,7 +83,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
 
       if (!response.ok || !payData?.url) {
         console.error("Error Detallado Pagopar:", payData);
-        alert("Pedido guardado, pero hubo un problema al conectar con la pasarela de pago. Un asesor te contactará para finalizar tu compra.");
+        alert("Hubo un problema al conectar con la pasarela de pago. Tu pedido se guardó como 'Pendiente' y un asesor te contactará pronto.");
         clearCart();
         setIsOpen(false);
         return;
