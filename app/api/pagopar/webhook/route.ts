@@ -17,14 +17,18 @@ export async function POST(request: Request) {
       const pagado = pago.pagado === true || pago.pagado === "true";
       const cancelado = pago.cancelado === true || pago.cancelado === "true";
 
-      // Obtener datos del pedido original
-      const { data: orderData, error: fetchError } = await supabaseAdmin
+      // Obtener datos del pedido original para el registro en sales
+      const { data: orderData, error: orderError } = await supabaseAdmin
         .from('orders')
         .select('*')
         .eq('id', orderId)
         .single();
 
-      if (fetchError) throw new Error("No se pudo encontrar el pedido: " + fetchError.message);
+      if (orderError) {
+        console.error("Error obteniendo pedido en webhook:", orderError);
+        // Retornamos 200 para que Pagopar no reintente infinitamente si el pedido no existe por alguna razón
+        return NextResponse.json({ status: "error", message: "Pedido no encontrado" }, { status: 200 });
+      }
 
       if (pagado) {
         // 1. Actualizar el pedido
@@ -37,7 +41,7 @@ export async function POST(request: Request) {
           })
           .eq('id', orderId);
 
-        // 2. Registrar Venta Exitosa
+        // 2. Registrar Venta Completada
         const { error: saleError } = await supabaseAdmin
           .from('sales')
           .insert({
@@ -51,17 +55,17 @@ export async function POST(request: Request) {
             payment_method: 'pagopar',
             status: 'completada'
           });
-        
-        if (saleError) console.error("Error registrando venta exitosa:", saleError);
-        
+          
+        if (saleError) console.error("Error insertando venta completada:", saleError);
+
       } else if (cancelado) {
-        // 1. Actualizar el pedido a rechazado
+        // 1. Marcar pedido como rechazado
         await supabaseAdmin
           .from('orders')
           .update({ status: 'rechazado', updated_at: new Date().toISOString() })
           .eq('id', orderId);
 
-        // 2. Registrar Venta como Rechazada
+        // 2. Registrar Venta Rechazada
         const { error: saleError } = await supabaseAdmin
           .from('sales')
           .insert({
@@ -75,8 +79,8 @@ export async function POST(request: Request) {
             payment_method: 'pagopar',
             status: 'rechazada'
           });
-        
-        if (saleError) console.error("Error registrando venta rechazada:", saleError);
+          
+        if (saleError) console.error("Error insertando venta rechazada:", saleError);
       }
     }
 

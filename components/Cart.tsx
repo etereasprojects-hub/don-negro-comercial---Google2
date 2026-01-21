@@ -10,14 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 
-interface CartItem {
-  id: string;
-  nombre: string;
-  precio: number;
-  imagen_url: string;
-  cantidad: number;
-}
-
 interface CartProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -46,6 +38,11 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
     // Validación de documento (solo números)
     if (!/^\d+$/.test(customerData.documento)) {
       alert("La Cédula de Identidad debe contener solo números.");
+      return;
+    }
+
+    if (items.length === 0) {
+      alert("El carrito está vacío.");
       return;
     }
 
@@ -95,7 +92,8 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
         localStorage.setItem('last_pagopar_hash', payData.hash);
       }
 
-      // 4. Redirigir a Pagopar
+      // 4. Limpiar carrito y redirigir
+      clearCart();
       window.location.href = payData.url;
       
     } catch (error) {
