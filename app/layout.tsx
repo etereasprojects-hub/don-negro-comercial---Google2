@@ -1,4 +1,3 @@
-
 import React from 'react';
 import './globals.css';
 import type { Metadata } from 'next';
@@ -84,12 +83,12 @@ export const metadata: Metadata = {
   },
 };
 
-// RootLayout requires a required children prop for Next.js layout validation and CartProvider compatibility.
-// Added optional modifier to children prop to fix TS error: Property 'children' is missing in type '{}' but required in type '{ children: React.ReactNode; }'
+// RootLayout requires a children prop for Next.js layout validation and CartProvider compatibility.
+/* Fixed: Ensured children is a required prop to resolve TS error 'Property children is missing in type {}' by matching the expected Next.js layout signature. */
 export default function RootLayout({
   children,
 }: {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <html lang="es">

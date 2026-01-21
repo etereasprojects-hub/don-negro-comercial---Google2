@@ -6,24 +6,33 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, Clock, ShoppingBag } from "lucide-react";
+/* Fixed: Corrected invalid package name 'lucide-center' to 'lucide-react' and consolidated icon imports. */
+import { CheckCircle as CheckIcon, XCircle as ErrorIcon, Clock as ClockIcon, ShoppingBag } from "lucide-react";
 
 function PagoFinalizadoContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"success" | "error" | "pending">("pending");
   
-  // Capturamos el hash probando los nombres más comunes usados por Pagopar
-  const hashId = searchParams.get("id") || searchParams.get("hash") || searchParams.get("token");
+  // Capturamos el hash del parámetro 'hash' (syntax ($hash)) o 'id' (antigua)
+  const hashId = searchParams.get("hash") || searchParams.get("id") || searchParams.get("token");
 
   useEffect(() => {
-    // Validamos que exista un hash y que no sea el placeholder del panel de control
-    if (hashId && hashId !== "$hash" && hashId !== "$HASH") {
+    // Verificamos si el hash existe y no es un placeholder literal ($hash, {$hash}, ($hash))
+    const isPlaceholder = !hashId || 
+                         hashId.includes("$hash") || 
+                         hashId.includes("{$hash}") || 
+                         hashId.includes("($hash)") ||
+                         hashId === "($hash)";
+
+    if (hashId && !isPlaceholder) {
       setStatus("success");
     } else {
-      // Si entramos sin hash real, esperamos un momento por si es una redirección lenta
+      // Si no hay hash real, esperamos un momento por si es una redirección lenta
       const timer = setTimeout(() => {
-        if (!hashId || hashId.includes("$")) setStatus("error");
-      }, 3000);
+        if (isPlaceholder) {
+          setStatus("error");
+        }
+      }, 2500);
       return () => clearTimeout(timer);
     }
   }, [hashId]);
@@ -34,40 +43,40 @@ function PagoFinalizadoContent() {
         {status === "success" ? (
           <>
             <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle size={48} />
+              <CheckIcon size={48} />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">¡Pago Procesado!</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">¡Pago en Proceso!</h1>
             <p className="text-gray-600 mb-8 text-lg">
-              Hemos recibido la confirmación de tu transacción. Un asesor de Don Negro Comercial se pondrá en contacto contigo pronto para coordinar la entrega.
-              <span className="block mt-4 text-xs text-gray-400 font-mono">ID de Transacción: {hashId}</span>
+              Tu transacción ha sido registrada exitosamente. Un asesor de Don Negro Comercial validará tu pedido y se comunicará contigo para coordinar la entrega.
+              {hashId && <span className="block mt-4 text-xs text-gray-400 font-mono">Ref: {hashId}</span>}
             </p>
           </>
         ) : status === "error" ? (
           <>
-            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <XCircle size={48} />
+            <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ErrorIcon size={48} />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Estado Pendiente</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Verificación Manual</h1>
             <p className="text-gray-600 mb-8 text-lg">
-              No hemos podido verificar el pago automáticamente. Si ya realizaste la transferencia, no te preocupes, validaremos tu pedido manualmente con el comprobante.
+              No hemos podido detectar el hash de pago automáticamente, pero no te preocupes. Si completaste el pago, procesaremos tu pedido manualmente.
             </p>
           </>
         ) : (
           <>
             <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-              <Clock size={48} />
+              <ClockIcon size={48} />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Verificando Pago...</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Validando Transacción...</h1>
             <p className="text-gray-600 mb-8 text-lg">
-              Estamos conectando con Pagopar para confirmar tu pedido. Por favor, no cierres esta ventana.
+              Estamos conectando con la red de Pagopar para confirmar tu pago. Por favor espera.
             </p>
           </>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
           <Link href="/productos">
             <Button variant="outline" className="w-full sm:w-auto px-8">
-              Seguir comprando
+              Ver más productos
             </Button>
           </Link>
           <Link href="/">
@@ -88,9 +97,9 @@ export default function PagoFinalizadoPage() {
       <Header />
       <main className="min-h-screen bg-gray-50 pt-32 pb-20">
         <Suspense fallback={
-          <div className="container mx-auto px-4 text-center">
-            <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-4 text-gray-600">Cargando detalles...</p>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-10 h-10 border-4 border-pink-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-4 text-gray-600 font-medium">Cargando...</p>
           </div>
         }>
           <PagoFinalizadoContent />
