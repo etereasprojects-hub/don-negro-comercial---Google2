@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Package, ShoppingCart, TrendingUp, CreditCard, MessageSquare, Calendar, MessageCircle, Brain, Receipt, Settings, Image, Plug, FolderTree } from "lucide-react";
+import { Package, ShoppingCart, TrendingUp, CreditCard, MessageSquare, Calendar, MessageCircle, Brain, Receipt, Settings, Image, Plug, FolderTree, Database } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface AdminTabsProps {
@@ -9,17 +10,18 @@ interface AdminTabsProps {
 }
 
 const tabs = [
-  { id: "productos", label: "Productos", icon: Package, count: 544 },
+  { id: "productos", label: "Productos", icon: Package, count: null },
   { id: "categorias", label: "Categorías", icon: FolderTree, count: null },
   { id: "pedidos", label: "Pedidos", icon: ShoppingCart, count: null },
-  { id: "ventas", label: "Ventas", icon: TrendingUp, count: 40 },
+  { id: "ventas", label: "Ventas", icon: TrendingUp, count: null },
   { id: "creditos", label: "Pagos a Crédito", icon: CreditCard, count: null },
   { id: "banners", label: "Banners", icon: Image, count: null },
   { id: "conexion-api", label: "Conexión API", icon: Plug, count: null },
   { id: "configuracion", label: "Configuración", icon: Settings, count: null },
-  { id: "mensajes", label: "Mensajes", icon: MessageSquare, count: 2 },
+  { id: "migracion", label: "Migración", icon: Database, count: null },
+  { id: "mensajes", label: "Mensajes", icon: MessageSquare, count: null },
   { id: "citas", label: "Citas", icon: Calendar, count: null },
-  { id: "chats", label: "Chats", icon: MessageCircle, count: 11 },
+  { id: "chats", label: "Chats", icon: MessageCircle, count: null },
   { id: "ia", label: "IA", icon: Brain, count: null },
   { id: "facturacion", label: "Facturación", icon: Receipt, count: null },
 ];
@@ -44,6 +46,8 @@ export default function AdminTabs({ activeTab }: AdminTabsProps) {
       router.push("/owner/conexion-api");
     } else if (tabId === "configuracion") {
       router.push("/owner/configuracion");
+    } else if (tabId === "migracion") {
+      router.push("/owner/migracion");
     } else if (tabId === "mensajes") {
       router.push("/owner/mensajes");
     } else if (tabId === "citas") {
