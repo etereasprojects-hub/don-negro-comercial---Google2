@@ -42,10 +42,13 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerData.documento) {
-      alert("La Cédula de Identidad es obligatoria para procesar el pago.");
+    
+    // Validación de documento (solo números)
+    if (!/^\d+$/.test(customerData.documento)) {
+      alert("La Cédula de Identidad debe contener solo números.");
       return;
     }
+
     setLoading(true);
 
     try {
@@ -83,17 +86,20 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
 
       if (!response.ok || !payData?.url) {
         console.error("Error Detallado Pagopar:", payData);
-        alert("Hubo un problema al conectar con la pasarela de pago. Tu pedido se guardó como 'Pendiente' y un asesor te contactará pronto.");
-        clearCart();
-        setIsOpen(false);
+        alert("Hubo un problema al conectar con la pasarela de pago.");
         return;
       }
 
-      // 3. Redirigir a Pagopar
+      // 3. Guardar hash en localStorage por seguridad
+      if (payData.hash) {
+        localStorage.setItem('last_pagopar_hash', payData.hash);
+      }
+
+      // 4. Redirigir a Pagopar
       window.location.href = payData.url;
       
     } catch (error) {
-      console.error("Error creating order:", error);
+      console.error("Error creando pedido:", error);
       alert("Error al realizar el pedido. Por favor, intenta de nuevo.");
     } finally {
       setLoading(false);
@@ -210,11 +216,11 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
               />
             </div>
             <div>
-              <Label htmlFor="documento">Cédula de Identidad *</Label>
+              <Label htmlFor="documento">Cédula de Identidad (Solo números) *</Label>
               <Input
                 id="documento"
                 value={customerData.documento}
-                onChange={(e) => setCustomerData({ ...customerData, documento: e.target.value })}
+                onChange={(e) => setCustomerData({ ...customerData, documento: e.target.value.replace(/\D/g, '') })}
                 required
                 placeholder="Ej: 1234567"
               />

@@ -17,6 +17,15 @@ export async function POST(request: Request) {
       const pagado = pago.pagado === true || pago.pagado === "true";
       const cancelado = pago.cancelado === true || pago.cancelado === "true";
 
+      // Obtener datos del pedido original
+      const { data: orderData, error: fetchError } = await supabaseAdmin
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError) throw new Error("No se pudo encontrar el pedido: " + fetchError.message);
+
       if (pagado) {
         // 1. Actualizar el pedido
         await supabaseAdmin
@@ -28,41 +37,52 @@ export async function POST(request: Request) {
           })
           .eq('id', orderId);
 
-        // 2. Registrar Venta
-        const { data: orderData } = await supabaseAdmin
-          .from('orders')
-          .select('*')
-          .eq('id', orderId)
-          .single();
-
-        if (orderData) {
-          await supabaseAdmin
-            .from('sales')
-            .insert({
-              order_id: orderData.id,
-              customer_name: orderData.customer_name,
-              customer_phone: orderData.customer_phone,
-              customer_address: orderData.customer_address,
-              items: orderData.items,
-              total: orderData.total,
-              sale_type: 'contado',
-              payment_method: 'pagopar',
-              status: 'completada'
-            });
-        }
+        // 2. Registrar Venta Exitosa
+        const { error: saleError } = await supabaseAdmin
+          .from('sales')
+          .insert({
+            order_id: orderData.id,
+            customer_name: orderData.customer_name,
+            customer_phone: orderData.customer_phone,
+            customer_address: orderData.customer_address,
+            items: orderData.items,
+            total: orderData.total,
+            sale_type: 'contado',
+            payment_method: 'pagopar',
+            status: 'completada'
+          });
+        
+        if (saleError) console.error("Error registrando venta exitosa:", saleError);
+        
       } else if (cancelado) {
+        // 1. Actualizar el pedido a rechazado
         await supabaseAdmin
           .from('orders')
           .update({ status: 'rechazado', updated_at: new Date().toISOString() })
           .eq('id', orderId);
+
+        // 2. Registrar Venta como Rechazada
+        const { error: saleError } = await supabaseAdmin
+          .from('sales')
+          .insert({
+            order_id: orderData.id,
+            customer_name: orderData.customer_name,
+            customer_phone: orderData.customer_phone,
+            customer_address: orderData.customer_address,
+            items: orderData.items,
+            total: orderData.total,
+            sale_type: 'contado',
+            payment_method: 'pagopar',
+            status: 'rechazada'
+          });
+        
+        if (saleError) console.error("Error registrando venta rechazada:", saleError);
       }
     }
 
-    // Pagopar necesita 200 OK para dejar de reintentar
     return NextResponse.json({ status: "ok" }, { status: 200 });
   } catch (error: any) {
     console.error("WEBHOOK ERROR:", error.message);
-    // Aun con error, solemos devolver 200 si el error es de logica nuestra para que Pagopar no sature
     return NextResponse.json({ error: error.message }, { status: 200 });
   }
 }

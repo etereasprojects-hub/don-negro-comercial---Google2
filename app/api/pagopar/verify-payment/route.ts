@@ -6,8 +6,8 @@ export async function POST(request: Request) {
   try {
     const { hash } = await request.json();
 
-    const PUBLIC_TOKEN = "77b2b4f7997450ba3c28b85be8d9b066";
-    const PRIVATE_TOKEN = "8f4d9f126e97a13f1eed82b9048f4e02";
+    const PUBLIC_TOKEN = process.env.PAGOPAR_PUBLIC_TOKEN || "77b2b4f7997450ba3c28b85be8d9b066";
+    const PRIVATE_TOKEN = process.env.PAGOPAR_PRIVATE_TOKEN || "8f4d9f126e97a13f1eed82b9048f4e02";
 
     // Token para consulta: sha1(token_privado + "CONSULTA")
     const hashConsulta = crypto.createHash('sha1').update(`${PRIVATE_TOKEN}CONSULTA`).digest('hex');
@@ -25,23 +25,22 @@ export async function POST(request: Request) {
     });
 
     const result = await response.json();
-    console.log("Respuesta Consulta Pagopar:", result);
 
     if (result.respuesta === "OK" && result.resultado && result.resultado.length > 0) {
       const pedido = result.resultado[0];
-      const statusPagopar = pedido.pagado; // boolean o string
+      const statusPagopar = pedido.pagado;
       const comercioId = pedido.comercio_pedido_id;
 
       let finalStatus = "pendiente";
       if (statusPagopar === true || statusPagopar === "true") finalStatus = "pagado";
       if (pedido.cancelado === true || pedido.cancelado === "true") finalStatus = "rechazado";
 
-      // Actualizar en Supabase
       const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
 
+      // Actualizar pedido
       await supabaseAdmin
         .from('orders')
         .update({ 
@@ -50,6 +49,37 @@ export async function POST(request: Request) {
           updated_at: new Date().toISOString()
         })
         .eq('id', comercioId);
+
+      // Si está pagado, asegurar que exista el registro en sales (idempotente)
+      if (finalStatus === "pagado") {
+        const { data: existingSale } = await supabaseAdmin
+          .from('sales')
+          .select('id')
+          .eq('order_id', comercioId)
+          .maybeSingle();
+
+        if (!existingSale) {
+          const { data: orderData } = await supabaseAdmin
+            .from('orders')
+            .select('*')
+            .eq('id', comercioId)
+            .single();
+
+          if (orderData) {
+            await supabaseAdmin.from('sales').insert({
+              order_id: orderData.id,
+              customer_name: orderData.customer_name,
+              customer_phone: orderData.customer_phone,
+              customer_address: orderData.customer_address,
+              items: orderData.items,
+              total: orderData.total,
+              sale_type: 'contado',
+              payment_method: 'pagopar',
+              status: 'completada'
+            });
+          }
+        }
+      }
 
       return NextResponse.json({ 
         status: finalStatus === "pagado" ? "paid" : (finalStatus === "rechazado" ? "failed" : "pending"),

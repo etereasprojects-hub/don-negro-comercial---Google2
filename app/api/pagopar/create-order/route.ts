@@ -5,11 +5,14 @@ export async function POST(request: Request) {
   try {
     const { orderId, customer, items } = await request.json();
 
-    // CREDENCIALES DON NEGRO COMERCIAL
-    const PUBLIC_TOKEN = "77b2b4f7997450ba3c28b85be8d9b066";
-    const PRIVATE_TOKEN = "8f4d9f126e97a13f1eed82b9048f4e02";
+    if (!items || items.length === 0) {
+      return NextResponse.json({ error: "El carrito no tiene productos" }, { status: 400 });
+    }
 
-    // 1. Procesar items y calcular total
+    const PUBLIC_TOKEN = process.env.PAGOPAR_PUBLIC_TOKEN || "77b2b4f7997450ba3c28b85be8d9b066";
+    const PRIVATE_TOKEN = process.env.PAGOPAR_PRIVATE_TOKEN || "8f4d9f126e97a13f1eed82b9048f4e02";
+
+    // 1. Procesar items y calcular total exacto para evitar discrepancias
     let calculatedTotal = 0;
     const processedItems = items.map((item: any) => {
       const unitPrice = Math.round(Number(item.precio));
@@ -33,7 +36,7 @@ export async function POST(request: Request) {
       };
     });
 
-    // 2. Generar Token SHA1 (private_token + pedido_id + monto_total)
+    // 2. Generar Token SHA1
     const hashData = `${PRIVATE_TOKEN}${orderId}${calculatedTotal}`;
     const token = crypto.createHash('sha1').update(hashData).digest('hex');
 
@@ -55,15 +58,13 @@ export async function POST(request: Request) {
         apellido: "",
         tel: cleanPhone || "0981000000",
         email: customer.email || "ventas@donegro.com",
-        direccion: (customer.address || "Asunción").substring(0, 90).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
+        direccion: (customer.address || "Asunción").substring(0, 90).replace(/[^\w\sáíóúÁÉÍÓÚñÑ]/gi, ''),
         ruc: "",
         documento: cleanDoc,
         tipo_documento: "1",
         ciudad: "1"
       }
     };
-
-    console.log("Payload Pagopar v1.0:", JSON.stringify(pagoparOrder, null, 2));
 
     const response = await fetch("https://api.pagopar.com/comercio/1.0/generar-pedido", {
       method: "POST",
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
       console.error("Error Pagopar v1.0:", result);
       return NextResponse.json({ 
         error: "Error en la pasarela", 
-        details: result.resultado || result.respuesta || "Validación fallida"
+        details: result.resultado || result.respuesta
       }, { status: 400 });
     }
 
