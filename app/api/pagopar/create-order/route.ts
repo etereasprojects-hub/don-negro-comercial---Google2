@@ -12,8 +12,10 @@ export async function POST(request: Request) {
     // Los montos en PYG DEBEN ser enteros sin decimales
     const finalTotal = Math.round(total);
 
+    // Limpiar teléfono de caracteres no numéricos para Pagopar
+    const cleanPhone = (customer.phone || "").replace(/\D/g, "");
+
     // Generar Token SHA1 de seguridad según documentación Pagopar v1.1
-    // Regla: sha1(token_privado + id_pedido_comercio + monto_total)
     const hashData = `${PRIVATE_TOKEN}${orderId}${finalTotal}`;
     const token = crypto.createHash('sha1').update(hashData).digest('hex');
 
@@ -26,7 +28,7 @@ export async function POST(request: Request) {
       descripcion_resumen: `Compra Don Negro #${orderId}`.substring(0, 150),
       compras_items: items.map((item: any) => ({
         ciudad: "1", // Asunción
-        nombre: item.nombre.substring(0, 90), // Pagopar tiene límite de 100 char
+        nombre: item.nombre.substring(0, 90),
         cantidad: Math.round(item.cantidad),
         precio_unitario: Math.round(item.precio),
         total_monto: Math.round(item.precio * item.cantidad),
@@ -41,11 +43,11 @@ export async function POST(request: Request) {
       fecha_maxima_pago: new Date(Date.now() + 86400000).toISOString().slice(0, 19).replace('T', ' '),
       usuario: {
         nombre: (customer.name || "Cliente Web").substring(0, 45),
-        tel: (customer.phone || "0981000000").substring(0, 15),
+        tel: cleanPhone.substring(0, 20),
         email: customer.email || "ventas@donegro.com",
         direccion: (customer.address || "Asunción").substring(0, 90),
         ruc: "",
-        documento: customer.documento || "1234567", // Pagopar exige documento real o placeholder
+        documento: (customer.documento || "").replace(/\D/g, ""), // Usar documento real enviado
         tipo_documento: "1", // 1 para Cédula de Identidad
         ciudad: "1"
       }
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
       const paymentHash = result.resultado[0].data;
       return NextResponse.json({ url: `https://www.pagopar.com/pagar/${paymentHash}` });
     } else {
-      console.error("Detalle Error Pagopar:", JSON.stringify(result, null, 2));
+      console.error("Error API Pagopar:", JSON.stringify(result, null, 2));
       return NextResponse.json({ 
         error: "Error en la pasarela", 
         details: result.resultado || result.respuesta || "Faltan datos obligatorios"

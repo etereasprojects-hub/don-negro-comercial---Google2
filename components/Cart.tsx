@@ -37,6 +37,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
     email: "",
     phone: "",
     address: "",
+    documento: "", // Nuevo campo obligatorio para Pagopar
   });
 
   const handleCheckout = async (e: React.FormEvent) => {
@@ -78,8 +79,8 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
       const payData = await response.json();
 
       if (!response.ok || !payData?.url) {
-        console.error("Error Pagopar:", payData);
-        alert("Pedido guardado, pero hubo un problema al conectar con la pasarela de pago. Un asesor te contactará.");
+        console.error("Error Detallado Pagopar:", payData);
+        alert("Pedido guardado, pero hubo un problema al conectar con la pasarela de pago. Un asesor te contactará para finalizar tu compra.");
         clearCart();
         setIsOpen(false);
         return;
@@ -110,7 +111,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
           </Button>
         </SheetTrigger>
       )}
-      <SheetContent className="w-full sm:max-w-lg">
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Carrito de Compras</SheetTitle>
         </SheetHeader>
@@ -202,6 +203,17 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 value={customerData.name}
                 onChange={(e) => setCustomerData({ ...customerData, name: e.target.value })}
                 required
+                placeholder="Nombre y Apellido"
+              />
+            </div>
+            <div>
+              <Label htmlFor="documento">Cédula de Identidad *</Label>
+              <Input
+                id="documento"
+                value={customerData.documento}
+                onChange={(e) => setCustomerData({ ...customerData, documento: e.target.value })}
+                required
+                placeholder="Ej: 1234567"
               />
             </div>
             <div>
@@ -211,6 +223,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 value={customerData.phone}
                 onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value })}
                 required
+                placeholder="09xx xxx xxx"
               />
             </div>
             <div>
@@ -221,6 +234,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 value={customerData.email}
                 onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
                 required
+                placeholder="tu@email.com"
               />
             </div>
             <div>
@@ -230,6 +244,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 value={customerData.address}
                 onChange={(e) => setCustomerData({ ...customerData, address: e.target.value })}
                 required
+                placeholder="Ciudad, Calle y Nro de Casa"
               />
             </div>
 
@@ -250,7 +265,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 Volver
               </Button>
               <Button type="submit" disabled={loading} className="flex-1 bg-pink-600 hover:bg-pink-700">
-                {loading ? "Procesando..." : "Pagar con Pagopar"}
+                {loading ? "Procesando..." : "Ir a Pagar"}
               </Button>
             </div>
           </form>
