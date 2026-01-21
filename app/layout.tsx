@@ -85,11 +85,11 @@ export const metadata: Metadata = {
 };
 
 // Fixed React namespace error by importing React
-// Fixed children type error by making it optional to handle potential empty prop calls
+// Fixed children type error by making it required as expected by Next.js framework layouts
 export default function RootLayout({
   children,
 }: {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <html lang="es">

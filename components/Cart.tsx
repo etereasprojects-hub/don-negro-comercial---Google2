@@ -63,18 +63,22 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
 
       if (orderError) throw orderError;
 
-      // 2. Llamar a la Edge Function para generar el pago en Pagopar
-      const { data: payData, error: payError } = await supabase.functions.invoke('pagopar-create-order', {
-        body: { 
+      // 2. Llamar al API Route interno de Next.js
+      const response = await fetch('/api/pagopar/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
           orderId: order.id,
           customer: customerData,
           items: items,
           total: total
-        }
+        })
       });
 
-      if (payError || !payData?.url) {
-        console.error("Error Pagopar:", payError || payData);
+      const payData = await response.json();
+
+      if (!response.ok || !payData?.url) {
+        console.error("Error Pagopar:", payData);
         alert("Pedido guardado, pero hubo un problema al conectar con la pasarela de pago. Un asesor te contactará.");
         clearCart();
         setIsOpen(false);
