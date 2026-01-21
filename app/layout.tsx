@@ -85,11 +85,11 @@ export const metadata: Metadata = {
 };
 
 // Fixed React namespace error by importing React
-// Changed children to be required to satisfy framework requirements and fix the missing property error
+// Added optional children type to resolve the error "Property 'children' is missing in type '{}' but required in type '{ children: React.ReactNode; }'."
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
     <html lang="es">
