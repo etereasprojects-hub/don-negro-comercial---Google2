@@ -4,9 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
+    console.log("WEBHOOK PAGOPAR RECIBIDO:", JSON.stringify(payload, null, 2));
     
-    // Configuración de Supabase con Service Role Key para poder actualizar sin restricciones de RLS
-    // Nota: Asegúrate de tener estas variables en tu entorno
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -16,15 +15,20 @@ export async function POST(request: Request) {
       const pago = payload.resultado[0];
       const orderId = pago.comercio_pedido_id;
       const pagado = pago.pagado === true || pago.pagado === "true";
+      const cancelado = pago.cancelado === true || pago.cancelado === "true";
 
       if (pagado) {
-        // 1. Actualizar el pedido original
+        // 1. Actualizar el pedido
         await supabaseAdmin
           .from('orders')
-          .update({ status: 'completado', updated_at: new Date().toISOString() })
+          .update({ 
+            status: 'completado', 
+            payment_hash: pago.pedido_id,
+            updated_at: new Date().toISOString() 
+          })
           .eq('id', orderId);
 
-        // 2. Obtener datos para registrar la venta
+        // 2. Registrar Venta
         const { data: orderData } = await supabaseAdmin
           .from('orders')
           .select('*')
@@ -32,7 +36,6 @@ export async function POST(request: Request) {
           .single();
 
         if (orderData) {
-          // 3. Registrar en la tabla de ventas
           await supabaseAdmin
             .from('sales')
             .insert({
@@ -47,12 +50,19 @@ export async function POST(request: Request) {
               status: 'completada'
             });
         }
+      } else if (cancelado) {
+        await supabaseAdmin
+          .from('orders')
+          .update({ status: 'rechazado', updated_at: new Date().toISOString() })
+          .eq('id', orderId);
       }
     }
 
-    return NextResponse.json({ success: true });
+    // Pagopar necesita 200 OK para dejar de reintentar
+    return NextResponse.json({ status: "ok" }, { status: 200 });
   } catch (error: any) {
-    console.error("Webhook Error:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error("WEBHOOK ERROR:", error.message);
+    // Aun con error, solemos devolver 200 si el error es de logica nuestra para que Pagopar no sature
+    return NextResponse.json({ error: error.message }, { status: 200 });
   }
 }

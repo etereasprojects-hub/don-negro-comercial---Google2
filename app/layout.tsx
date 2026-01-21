@@ -83,13 +83,13 @@ export const metadata: Metadata = {
   },
 };
 
+// Fixed: Removed optional children and default empty object to resolve 'Property children is missing in type {}' error.
 // RootLayout requires a children prop for Next.js layout validation and CartProvider compatibility.
-// Fixed: Made children optional and added a default empty object to resolve 'Property children is missing in type {}' error.
 export default function RootLayout({
   children,
 }: {
-  children?: React.ReactNode;
-} = {}) {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="es">
       <head>
