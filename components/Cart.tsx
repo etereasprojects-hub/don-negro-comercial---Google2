@@ -1,15 +1,15 @@
-
 "use client";
 
 import React, { useState } from "react";
 import Image from "next/image";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, X, Minus, Plus, ShieldCheck } from "lucide-react";
+import { ShoppingCart, X, Minus, Plus, ShieldCheck, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 interface CartProps {
   open?: boolean;
@@ -18,13 +18,14 @@ interface CartProps {
 }
 
 export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }: CartProps = {}) {
-  const { items, removeItem, updateQuantity, total } = useCart();
+  const { items, removeItem, updateQuantity, total, clearCart } = useCart();
   const [internalOpen, setInternalOpen] = useState(false);
-  const router = useRouter();
-
+  const [loading, setLoading] = useState(false);
+  
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setIsOpen = onOpenChange || setInternalOpen;
   const [showCheckout, setShowCheckout] = useState(false);
+  
   const [customerData, setCustomerData] = useState({
     name: "",
     email: "",
@@ -33,14 +34,58 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
     documento: "",
   });
 
-  const handleGoToDemoPayment = (e: React.FormEvent) => {
+  const handleRealCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Guardamos datos temporales para la demo
-    localStorage.setItem("demo_customer", JSON.stringify(customerData));
-    localStorage.setItem("demo_total", total.toString());
-    
-    setIsOpen(false);
-    router.push("/checkout-ficticio");
+    if (items.length === 0) return;
+
+    setLoading(true);
+    try {
+      // 1. Crear el pedido en Supabase para tener un registro previo (Paso 2 de Pagopar requiere ID de comercio)
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert([
+          {
+            customer_name: customerData.name,
+            customer_email: customerData.email,
+            customer_phone: customerData.phone,
+            customer_address: customerData.address,
+            items: items,
+            total: total,
+            status: "pendiente",
+          },
+        ])
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // 2. Llamar a nuestro API Route que conecta con Pagopar (Integración Real API 2.0)
+      const response = await fetch('/api/pagopar/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          orderId: order.id,
+          customer: customerData,
+          items: items
+        })
+      });
+
+      const payData = await response.json();
+
+      if (!response.ok || !payData?.url) {
+        throw new Error(payData.details || payData.error || "Error al conectar con la pasarela");
+      }
+
+      // 3. Limpiar carrito local y redirigir al pago real en Pagopar
+      clearCart();
+      window.location.href = payData.url;
+      
+    } catch (error: any) {
+      console.error("Checkout Error:", error);
+      alert("Hubo un problema al procesar tu pedido: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -131,16 +176,16 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                   className="w-full bg-pink-600 hover:bg-pink-700"
                   onClick={() => setShowCheckout(true)}
                 >
-                  Proceder al Checkout
+                  Proceder al Pago
                 </Button>
               </div>
             )}
           </div>
         ) : (
-          <form onSubmit={handleGoToDemoPayment} className="py-4 space-y-4">
+          <form onSubmit={handleRealCheckout} className="py-4 space-y-4">
             <div className="bg-green-50 p-3 rounded-lg border border-green-100 mb-4 flex items-center gap-3">
               <ShieldCheck className="text-green-600" size={20} />
-              <p className="text-xs text-green-800">Estás en un entorno de pago seguro y cifrado.</p>
+              <p className="text-xs text-green-800">Pago seguro procesado por Pagopar.</p>
             </div>
             <div>
               <Label htmlFor="name">Nombre Completo *</Label>
@@ -149,6 +194,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 value={customerData.name}
                 onChange={(e) => setCustomerData({ ...customerData, name: e.target.value })}
                 required
+                disabled={loading}
                 placeholder="Nombre y Apellido"
               />
             </div>
@@ -159,7 +205,8 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 value={customerData.documento}
                 onChange={(e) => setCustomerData({ ...customerData, documento: e.target.value.replace(/\D/g, '') })}
                 required
-                placeholder="Ej: 1234567"
+                disabled={loading}
+                placeholder="Nro de Documento"
               />
             </div>
             <div>
@@ -169,6 +216,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 value={customerData.phone}
                 onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value })}
                 required
+                disabled={loading}
                 placeholder="09xx xxx xxx"
               />
             </div>
@@ -180,6 +228,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 value={customerData.email}
                 onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
                 required
+                disabled={loading}
                 placeholder="tu@email.com"
               />
             </div>
@@ -190,6 +239,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 value={customerData.address}
                 onChange={(e) => setCustomerData({ ...customerData, address: e.target.value })}
                 required
+                disabled={loading}
                 placeholder="Ciudad, Calle y Nro de Casa"
               />
             </div>
@@ -207,11 +257,19 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                 variant="outline"
                 onClick={() => setShowCheckout(false)}
                 className="flex-1"
+                disabled={loading}
               >
                 Volver
               </Button>
-              <Button type="submit" className="flex-1 bg-pink-600 hover:bg-pink-700">
-                Pagar Ahora
+              <Button type="submit" className="flex-1 bg-pink-600 hover:bg-pink-700" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  "Pagar Ahora"
+                )}
               </Button>
             </div>
           </form>

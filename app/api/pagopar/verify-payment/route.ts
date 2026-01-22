@@ -18,7 +18,6 @@ export async function POST(request: Request) {
     }
 
     // El token para "traer" DEBE ser sha1(clave_privada + "CONSULTA")
-    // Es vital que sea en minúsculas el digest hex
     const tokenConsulta = crypto
       .createHash('sha1')
       .update(`${PRIVATE_TOKEN.trim()}CONSULTA`)
@@ -30,7 +29,7 @@ export async function POST(request: Request) {
       token_publico: PUBLIC_TOKEN.trim()
     };
 
-    console.log("Consultando Paso 3 a Pagopar con Hash:", hash);
+    console.log("Consultando estado a Pagopar con Hash:", hash);
 
     const response = await fetch("https://api.pagopar.com/api/pedidos/1.1/traer", {
       method: "POST",
@@ -39,9 +38,9 @@ export async function POST(request: Request) {
     });
 
     const result = await response.json();
-    console.log("Respuesta de Pagopar Paso 3:", JSON.stringify(result));
+    console.log("Respuesta de Pagopar:", JSON.stringify(result));
 
-    // Pagopar marca el Paso 3 como exitoso si recibe esta consulta con el token correcto
+    // Si Pagopar responde OK (ya sea booleano o string)
     if (result.respuesta === true || result.respuesta === "OK") {
       if (result.resultado && result.resultado.length > 0) {
         const pedido = result.resultado[0];
@@ -56,14 +55,14 @@ export async function POST(request: Request) {
 
         let statusLabel = pagado ? "completado" : (cancelado ? "rechazado" : "pendiente");
         
-        // Sincronizar con nuestra base de datos
+        // Sincronizar estado en nuestra base de datos
         await supabaseAdmin
           .from('orders')
           .update({ status: statusLabel, updated_at: new Date().toISOString() })
           .eq('id', orderId);
 
         if (pagado) {
-          // Lógica de registro de venta (idempotente)
+          // Lógica idempotente para registrar venta
           const { data: saleExists } = await supabaseAdmin
             .from('sales')
             .select('id')
@@ -96,7 +95,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Si llegamos aquí, Pagopar recibió la petición pero algo no cuadró (ej: hash no existe en staging)
     return NextResponse.json({ 
       status: "failed", 
       message: result.resultado || "No se pudo validar el pedido con Pagopar" 
