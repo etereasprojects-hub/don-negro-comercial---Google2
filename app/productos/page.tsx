@@ -140,7 +140,21 @@ export default function ProductsPage() {
   };
 
   const handleAddToCart = (product: Product) => {
-    addItem(product);
+    // Calculamos el precio de venta real antes de añadirlo al carrito
+    const calculated = calculatePrices({
+      costo: Number(product.costo ?? 0),
+      margen_porcentaje: Number(product.margen_porcentaje ?? 18),
+      interes_6_meses_porcentaje: Number(product.interes_6_meses_porcentaje ?? 45),
+      interes_12_meses_porcentaje: Number(product.interes_12_meses_porcentaje ?? 65),
+      interes_15_meses_porcentaje: Number(product.interes_15_meses_porcentaje ?? 75),
+      interes_18_meses_porcentaje: Number(product.interes_18_meses_porcentaje ?? 85),
+    });
+    
+    addItem({ 
+      ...product, 
+      precio: calculated.precioContado 
+    });
+    
     alert("Producto agregado al carrito");
   };
 

@@ -86,12 +86,13 @@ export const metadata: Metadata = {
 /**
  * RootLayout component for the application.
  */
-// Fix: changed children to be required to resolve the "missing in type '{}'" error, 
-// ensuring the RootLayout signature matches the expectations of the Next.js framework.
+// Fix: changed children to be optional to resolve the "missing in type '{}'" error, 
+// ensuring the RootLayout signature matches the expectations of the Next.js framework 
+// and various static analysis tools that might instantiate the component without props.
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
     <html lang="es">
