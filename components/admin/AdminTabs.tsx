@@ -18,7 +18,6 @@ const tabs = [
   { id: "banners", label: "Banners", icon: Image, count: null },
   { id: "conexion-api", label: "Conexión API", icon: Plug, count: null },
   { id: "configuracion", label: "Configuración", icon: Settings, count: null },
-  { id: "migracion", label: "Migración", icon: Database, count: null },
   { id: "mensajes", label: "Mensajes", icon: MessageSquare, count: null },
   { id: "citas", label: "Citas", icon: Calendar, count: null },
   { id: "chats", label: "Chats", icon: MessageCircle, count: null },
@@ -46,8 +45,6 @@ export default function AdminTabs({ activeTab }: AdminTabsProps) {
       router.push("/owner/conexion-api");
     } else if (tabId === "configuracion") {
       router.push("/owner/configuracion");
-    } else if (tabId === "migracion") {
-      router.push("/owner/migracion");
     } else if (tabId === "mensajes") {
       router.push("/owner/mensajes");
     } else if (tabId === "citas") {
