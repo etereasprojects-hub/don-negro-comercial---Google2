@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 
@@ -8,7 +9,7 @@ export async function POST(request: Request) {
 
     if (!PUBLIC_TOKEN || !PRIVATE_TOKEN) {
       return NextResponse.json(
-        { error: "Error de configuración: PAGOPAR_PUBLIC_TOKEN o PAGOPAR_PRIVATE_TOKEN no definidos en el servidor." },
+        { error: "Error de configuración: Tokens de Pagopar no definidos en el servidor." },
         { status: 500 }
       );
     }
@@ -29,24 +30,24 @@ export async function POST(request: Request) {
 
       return {
         public_key: PUBLIC_TOKEN,
-        id_producto: 1, // ID genérico requerido por la API
+        id_producto: 1, 
         nombre: item.nombre.substring(0, 80).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
         descripcion: item.nombre.substring(0, 100),
         precio_total: unitPrice,
         cantidad: quantity,
         url_imagen: item.imagen_url || "",
-        categoria: 9, // Electrónica/Hogar
-        ciudad: 1     // Asunción
+        categoria: 9, 
+        ciudad: 1     
       };
     });
 
     // 2. Generar Token SHA1 v2.0: private_token + id_pedido + total.toFixed(2)
-    // Importante: El total debe tener 2 decimales para el hash según documentación
+    // El total debe tener 2 decimales para el hash según documentación oficial
     const totalFixed = calculatedTotal.toFixed(2);
     const hashData = `${PRIVATE_TOKEN}${orderId}${totalFixed}`;
     const token = crypto.createHash('sha1').update(hashData).digest('hex');
 
-    // 3. Limpiar datos del comprador
+    // 3. Limpiar datos del comprador para evitar errores de validación en la pasarela
     const cleanPhone = (customer.phone || "").replace(/\D/g, "").substring(0, 20);
     const cleanDoc = (customer.documento || "").replace(/\D/g, "");
 
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
       public_key: PUBLIC_TOKEN,
       token: token,
       id_pedido_comercio: orderId.toString(),
-      monto_total: calculatedTotal, // Como número
+      monto_total: calculatedTotal,
       descripcion_resumen: `Pedido ${orderId} - Don Negro`.substring(0, 80),
       fecha_maxima_pago: new Date(Date.now() + 86400000).toISOString().slice(0, 19).replace('T', ' '),
       comprador: {
@@ -63,8 +64,8 @@ export async function POST(request: Request) {
         tel: cleanPhone || "0981000000",
         direccion: (customer.address || "Asunción").substring(0, 90).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
         documento: cleanDoc,
-        tipo_documento: 1, // 1 para CI
-        ciudad: 1          // 1 para Asunción
+        tipo_documento: 1, 
+        ciudad: 1          
       },
       compras_items: processedItems
     };
@@ -79,15 +80,14 @@ export async function POST(request: Request) {
 
     if (result.respuesta === "OK" && result.resultado) {
       const paymentHash = result.resultado; 
-      // En v2.0 el resultado es el hash directamente
       return NextResponse.json({ 
         url: `https://www.pagopar.com/pagos/${paymentHash}`, 
         hash: paymentHash 
       });
     } else {
-      console.error("Error Pagopar v2.0:", result);
+      console.error("Error Pagopar API:", result);
       return NextResponse.json({ 
-        error: "Error en la pasarela", 
+        error: "Error en la pasarela de pago", 
         details: result.resultado || result.respuesta 
       }, { status: 400 });
     }

@@ -87,13 +87,12 @@ export const metadata: Metadata = {
 /**
  * RootLayout component for the application.
  */
-// Fixed: children prop is made optional and the entire props object defaults to an empty object
-// to resolve the TypeScript error "Property 'children' is missing in type '{}' but required in type '{ children: React.ReactNode; }'"
+// Fixed: children is a required prop in Next.js layouts. Removed the optional flag and default value which caused the TypeScript error.
 export default function RootLayout({
   children,
 }: {
-  children?: React.ReactNode;
-} = {}) {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="es">
       <head>

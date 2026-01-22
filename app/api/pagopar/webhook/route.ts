@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -6,9 +7,11 @@ export async function POST(request: Request) {
     const payload = await request.json();
     console.log("WEBHOOK PAGOPAR RECIBIDO:", JSON.stringify(payload));
     
+    // Usamos el cliente de Supabase con la Anon Key por defecto
+    // Nota: El proceso automático de confirmación requiere que la tabla permita actualizaciones.
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
     if (payload.resultado && payload.resultado.length > 0) {
@@ -24,21 +27,21 @@ export async function POST(request: Request) {
         .single();
 
       if (fetchError || !orderData) {
-        return NextResponse.json({ status: "ignored", message: "Pedido no encontrado en DB" }, { status: 200 });
+        return NextResponse.json({ status: "ignored", message: "Pedido no encontrado" }, { status: 200 });
       }
 
       if (isPaid) {
-        // 1. Actualizar el Pedido
+        // 1. Actualizar el estado del Pedido
         await supabaseAdmin
           .from('orders')
           .update({ 
             status: 'completado', 
-            payment_hash: pago.pedido_id, // ID interno de Pagopar
+            payment_hash: pago.pedido_id, 
             updated_at: new Date().toISOString() 
           })
           .eq('id', orderId);
 
-        // 2. Registrar Venta (Evitar duplicados)
+        // 2. Registrar la Venta oficial (Evitando duplicados por order_id)
         const { data: saleExists } = await supabaseAdmin
           .from('sales')
           .select('id')
@@ -57,8 +60,6 @@ export async function POST(request: Request) {
             payment_method: 'pagopar',
             status: 'completada'
           });
-          
-          // Nota: Aquí podrías agregar lógica para descontar stock si fuera necesario
         }
       } else if (isCancelled) {
         await supabaseAdmin
