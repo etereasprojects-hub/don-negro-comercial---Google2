@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "El carrito está vacío" }, { status: 400 });
     }
 
-    // 1. Preparar items y calcular total (Limpiando campos redundantes para v2.0)
+    // 1. Preparar items y calcular total
     let calculatedTotal = 0;
     const processedItems = items.map((item: any, index: number) => {
       const unitPrice = Math.round(Number(item.precio));
@@ -38,7 +38,8 @@ export async function POST(request: Request) {
         nombre: item.nombre.substring(0, 100).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
         cantidad: quantity,
         categoria: "909",
-        // En v2.0 la public_key ya no va dentro de cada item
+        // Re-agregado: Pagopar exige public_key dentro de cada item para validar el JSON
+        public_key: PUBLIC_KEY, 
         url_imagen: item.imagen_url || "",
         descripcion: item.nombre.substring(0, 100),
         id_producto: index + 1,
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
         nombre: (customer.name || "Cliente").substring(0, 45),
         telefono: cleanPhone || "0981000000",
         direccion: (customer.address || "Asunción").substring(0, 90),
-        documento: cleanDoc || "4444444", // Fallback seguro para validación
+        documento: cleanDoc || "4444444", 
         coordenadas: "",
         razon_social: (customer.name || "Cliente").substring(0, 45),
         tipo_documento: "CI",
@@ -81,7 +82,6 @@ export async function POST(request: Request) {
       fecha_maxima_pago: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 19).replace('T', ' '),
       id_pedido_comercio: orderId.toString(),
       descripcion_resumen: `Pedido #${orderId} en Don Negro`.substring(0, 80)
-      // Se omite forma_pago para que Pagopar use todas las disponibles por defecto
     };
 
     // 4. Iniciar Transacción en Pagopar (Paso #1)
