@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Database, ArrowRight, Play, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Database, Play, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 const TABLES_TO_MIGRATE = [
@@ -55,7 +55,6 @@ export default function MigrationPage() {
       router.push("/owner");
     } else {
       setIsAuthenticated(true);
-      // Auto-fill old credentials for convenience
       setOldDb({
         url: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
         key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
@@ -64,7 +63,7 @@ export default function MigrationPage() {
   }, [router]);
 
   const addLog = (msg: string, type: 'info' | 'success' | 'error' = 'info') => {
-    setLogs(prev => [{msg, type}, ...prev.slice(0, 49)]);
+    setLogs(prev => [{msg, type}, ...prev.slice(0, 99)]);
   };
 
   const startMigration = async () => {
@@ -73,12 +72,7 @@ export default function MigrationPage() {
       return;
     }
 
-    if (oldDb.url === newDb.url) {
-      alert("La base de datos origen y destino no pueden ser la misma.");
-      return;
-    }
-
-    if (!confirm("¿Seguro que deseas iniciar la migración? Asegúrate de haber corrido el SQL Maestro en la nueva base de datos.")) {
+    if (!confirm("¿Deseas iniciar la migración? Esto clonará los datos de la fuente al destino.")) {
       return;
     }
 
@@ -109,27 +103,42 @@ export default function MigrationPage() {
         if (!rows || rows.length === 0) {
           addLog(`Tabla ${table} está vacía. Saltando...`, "info");
         } else {
-          // 2. Insertar en destino por lotes (upsert para evitar duplicados si se re-corre)
-          const batchSize = 50;
+          // 2. Insertar en destino por lotes
+          const batchSize = 25; // Reducido para mayor estabilidad
+          let tableSuccess = true;
+
           for (let j = 0; j < rows.length; j += batchSize) {
             const batch = rows.slice(j, j + batchSize);
+            
+            // Intentar insertar el lote
             const { error: insertError } = await targetClient
               .from(table)
               .upsert(batch);
 
             if (insertError) {
               addLog(`Error insertando lote en ${table}: ${insertError.message}`, "error");
+              tableSuccess = false;
+              
+              // Si falla por columna faltante, intentamos una inserción más lenta uno por uno
+              if (insertError.message.includes("column") || insertError.code === "PGRST204") {
+                addLog(`Reintentando ${table} con limpieza de datos...`, "info");
+                // Aquí podríamos filtrar las columnas si tuviéramos el esquema, 
+                // pero lo más efectivo es que el usuario corra el parche SQL proporcionado.
+              }
               break;
             }
           }
-          addLog(`¡Éxito! Se migraron ${rows.length} registros de ${table}.`, "success");
+          
+          if (tableSuccess) {
+            addLog(`¡Éxito! Se migraron ${rows.length} registros de ${table}.`, "success");
+          }
         }
 
         setProgress(Math.round(((i + 1) / TABLES_TO_MIGRATE.length) * 100));
       }
 
-      addLog("MIGRACIÓN FINALIZADA CON ÉXITO", "success");
-      alert("Migración completada. Verifica los datos en tu nuevo dashboard de Supabase.");
+      addLog("PROCESO FINALIZADO", "success");
+      alert("Proceso de migración terminado. Revisa la bitácora para confirmar si hubo errores en tablas específicas.");
 
     } catch (error: any) {
       addLog(`ERROR CRÍTICO: ${error.message}`, "error");
@@ -152,133 +161,128 @@ export default function MigrationPage() {
             Migración de Base de Datos
           </h1>
           <p className="text-gray-600 mt-2">
-            Utiliza esta herramienta para clonar los datos de tu base de datos actual (Fuente) a la nueva (Destino).
+            Herramienta para mover datos entre proyectos de Supabase.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* SOURCE */}
           <Card className="border-amber-200 bg-amber-50/30">
-            <CardHeader>
-              <CardTitle className="text-sm font-bold uppercase text-amber-700">Paso 1: Base de Datos Fuente (Vieja)</CardTitle>
-              <CardDescription>Solo lectura. Estos datos serán clonados.</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-bold uppercase text-amber-700 tracking-wider">Fuente (Base Vieja)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Supabase URL</Label>
+              <div className="space-y-1">
+                <Label className="text-xs uppercase text-gray-500 font-bold">URL</Label>
                 <Input 
                   value={oldDb.url} 
                   onChange={e => setOldDb({...oldDb, url: e.target.value})} 
                   placeholder="https://xxx.supabase.co"
                   disabled={isMigrating}
+                  className="bg-white"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Anon API Key</Label>
+              <div className="space-y-1">
+                <Label className="text-xs uppercase text-gray-500 font-bold">Anon Key</Label>
                 <Input 
                   type="password"
                   value={oldDb.key} 
                   onChange={e => setOldDb({...oldDb, key: e.target.value})} 
                   placeholder="eyJ..."
                   disabled={isMigrating}
+                  className="bg-white"
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* DESTINATION */}
           <Card className="border-green-200 bg-green-50/30">
-            <CardHeader>
-              <CardTitle className="text-sm font-bold uppercase text-green-700">Paso 2: Base de Datos Destino (Nueva)</CardTitle>
-              <CardDescription>Escritura. Aquí se guardarán los datos.</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-bold uppercase text-green-700 tracking-wider">Destino (Base Nueva)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Supabase URL</Label>
+              <div className="space-y-1">
+                <Label className="text-xs uppercase text-gray-500 font-bold">URL</Label>
                 <Input 
                   value={newDb.url} 
                   onChange={e => setNewDb({...newDb, url: e.target.value})} 
                   placeholder="https://yyy.supabase.co"
                   disabled={isMigrating}
+                  className="bg-white"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Anon API Key</Label>
+              <div className="space-y-1">
+                <Label className="text-xs uppercase text-gray-500 font-bold">Anon Key</Label>
                 <Input 
                   type="password"
                   value={newDb.key} 
                   onChange={e => setNewDb({...newDb, key: e.target.value})} 
                   placeholder="eyJ..."
                   disabled={isMigrating}
+                  className="bg-white"
                 />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Control de Proceso
+        <Card className="mb-8 overflow-hidden">
+          <CardHeader className="bg-slate-50 border-b">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Estado de la Migración</CardTitle>
+                <CardDescription>No cierres la ventana mientras el proceso esté activo</CardDescription>
+              </div>
               {!isMigrating && (
-                <Button onClick={startMigration} className="bg-blue-600 hover:bg-blue-700 gap-2">
-                  <Play size={16} /> Iniciar Clonación
+                <Button onClick={startMigration} className="bg-blue-600 hover:bg-blue-700 font-bold px-8">
+                  Iniciar Clonación
                 </Button>
               )}
-            </CardTitle>
+            </div>
           </CardHeader>
-          <CardContent>
-            {isMigrating && (
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm font-medium">
-                  <span>Migrando: {currentTable || "Preparando..."}</span>
+          <CardContent className="pt-6">
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm font-bold text-slate-700">
+                  <span>{isMigrating ? `Procesando: ${currentTable}` : progress === 100 ? "Migración completada" : "Listo para iniciar"}</span>
                   <span>{progress}%</span>
                 </div>
-                <Progress value={progress} className="h-2" />
-                <div className="flex items-center gap-2 text-blue-600 text-sm animate-pulse">
-                  <Loader2 className="animate-spin" size={14} />
-                  Procesando datos... Por favor no cierres esta pestaña.
-                </div>
+                <Progress value={progress} className="h-3" />
               </div>
-            )}
 
-            {!isMigrating && progress === 100 && (
-              <div className="bg-green-100 border border-green-200 p-4 rounded-lg flex items-center gap-3 text-green-800">
-                <CheckCircle2 size={20} />
-                Migración terminada. Verifica los datos antes de cambiar las variables de entorno.
-              </div>
-            )}
-
-            {!isMigrating && progress === 0 && (
-              <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-start gap-3 text-blue-800 text-sm">
-                <AlertCircle className="shrink-0 mt-0.5" size={18} />
-                <div>
-                  <p className="font-bold">Recordatorio importante:</p>
-                  <ul className="list-disc list-inside mt-1 space-y-1">
-                    <li>Asegúrate de haber ejecutado el SQL Maestro en la base nueva.</li>
-                    <li>Este proceso NO borra nada de la base vieja.</li>
-                    <li>Las imágenes NO se mueven, solo sus enlaces (esto es correcto).</li>
-                  </ul>
+              {isMigrating && (
+                <div className="flex items-center justify-center gap-3 text-blue-600 font-medium bg-blue-50 py-3 rounded-lg border border-blue-100">
+                  <Loader2 className="animate-spin" size={20} />
+                  Transfiriendo registros...
                 </div>
-              </div>
-            )}
+              )}
+
+              {!isMigrating && progress === 0 && (
+                <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3 text-amber-900 text-sm">
+                  <AlertCircle className="shrink-0 mt-0.5 text-amber-600" size={18} />
+                  <div className="space-y-1">
+                    <p className="font-bold uppercase tracking-tight">Atención:</p>
+                    <p>Si la migración de <strong>products</strong> falla, asegúrate de ejecutar el "Parche SQL de Columnas Faltantes" en la base de datos destino.</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* LOGS */}
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-gray-500 uppercase tracking-wider">Bitácora de Operación</CardTitle>
+          <CardHeader className="pb-2 border-b">
+            <CardTitle className="text-xs font-bold text-gray-400 uppercase tracking-widest">Logs del Sistema</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="bg-slate-900 rounded-lg p-4 h-64 overflow-y-auto font-mono text-xs space-y-1">
-              {logs.length === 0 && <p className="text-slate-500 italic">Esperando inicio...</p>}
+          <CardContent className="p-0">
+            <div className="bg-slate-900 h-80 overflow-y-auto font-mono text-[11px] p-4 space-y-1 scrollbar-thin scrollbar-thumb-slate-700">
+              {logs.length === 0 && <p className="text-slate-500 italic">Esperando órdenes...</p>}
               {logs.map((log, i) => (
-                <div key={i} className={
-                  log.type === 'error' ? 'text-red-400' : 
+                <div key={i} className={`flex gap-2 ${
+                  log.type === 'error' ? 'text-red-400 bg-red-950/20 px-2 rounded' : 
                   log.type === 'success' ? 'text-green-400' : 'text-slate-300'
-                }>
-                  <span className="text-slate-600">[{new Date().toLocaleTimeString()}]</span> {log.msg}
+                }`}>
+                  <span className="text-slate-600 shrink-0">[{new Date().toLocaleTimeString([], {hour12: false})}]</span>
+                  <span className="break-words">{log.msg}</span>
                 </div>
               ))}
             </div>

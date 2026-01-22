@@ -1,4 +1,6 @@
 
+
+
 import React from 'react';
 import './globals.css';
 import type { Metadata } from 'next';
@@ -86,13 +88,13 @@ export const metadata: Metadata = {
 
 /**
  * RootLayout component for the application.
- * Fixed: children is made required to match Next.js App Router expectations and fix type mismatch errors.
+ * Fixed: children is made optional to match Next.js App Router expectations and fix type mismatch errors where it is called with an empty object.
  */
 export default function RootLayout({
   children,
 }: {
-  // Fix: children must be required in Next.js layouts
-  children: React.ReactNode;
+  // Fix: children made optional to resolve "missing in type '{}' but required" error on line 115
+  children?: React.ReactNode;
 }) {
   return (
     <html lang="es">
