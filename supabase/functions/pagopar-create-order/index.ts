@@ -14,11 +14,12 @@ serve(async (req) => {
   try {
     const { orderId, customer, items, total } = await req.json()
 
-    const PUBLIC_TOKEN = "77b2b4f7997450ba3c28b85be8d9b066"
-    const PRIVATE_TOKEN = "8f4d9f126e97a13f1eed82b9048f4e02"
+    // Tokens de Producción Actualizados
+    const PUBLIC_TOKEN = "46d1542f3f3402cb13971dc6b829cfb9"
+    const PRIVATE_TOKEN = "5ac150711ecd4be8338574fc3d9cd93e"
 
     // Generar Token SHA1 de seguridad
-    // Regla Pagopar: sha1(token_privado + id_pedido_comercio + monto_total)
+    // Regla Pagopar v1.1: sha1(token_privado + id_pedido_comercio + monto_total)
     const hashData = `${PRIVATE_TOKEN}${orderId}${total}`
     const token = createHash("sha1").update(hashData).toString()
 
@@ -41,16 +42,16 @@ serve(async (req) => {
         vendedor_comercio: "Don Negro Comercial",
         vendedor_id: "1",
         vendedor_email: "ventas@donegro.com",
-        categoria: "9" // Electrónica/Hogar
+        categoria: "909" // Hogar/Electrónica
       })),
-      fecha_maxima_pago: new Date(Date.now() + 86400000).toISOString().slice(0, 19).replace('T', ' '), // 24h
+      fecha_maxima_pago: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 19).replace('T', ' '), // 48h para pagar
       usuario: {
         nombre: customer.name,
         tel: customer.phone,
         email: customer.email,
         direccion: customer.address,
         ruc: "",
-        documento: "",
+        documento: customer.documento || "",
         tipo_documento: "1", // CI
         ciudad: "1"
       }
