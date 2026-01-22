@@ -86,11 +86,12 @@ export const metadata: Metadata = {
 /**
  * RootLayout component for the application.
  */
-// Fixed: children is now optional to resolve TypeScript error 'Property children is missing in type {} but required in type { children: React.ReactNode; }'
+// Fixed: making children required as per Next.js requirements. 
+// Making it optional resulted in a type mismatch error when used by the framework.
 export default function RootLayout({
   children,
 }: {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <html lang="es">

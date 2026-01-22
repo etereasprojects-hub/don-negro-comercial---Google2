@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 
+/**
+ * Endpoint para el Paso #1 y preparación del Paso #2 de Pagopar API 2.0
+ */
 export async function POST(request: Request) {
   try {
-    const PUBLIC_TOKEN = process.env.PAGOPAR_PUBLIC_TOKEN;
+    const PUBLIC_KEY = process.env.PAGOPAR_PUBLIC_TOKEN;
     const PRIVATE_TOKEN = process.env.PAGOPAR_PRIVATE_TOKEN;
+    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!PUBLIC_TOKEN || !PRIVATE_TOKEN) {
+    if (!PUBLIC_KEY || !PRIVATE_TOKEN) {
       return NextResponse.json(
-        { error: "Tokens de Pagopar no configurados" },
+        { error: "Tokens de Pagopar no configurados en el servidor" },
         { status: 500 }
       );
     }
@@ -19,9 +25,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "El carrito está vacío" }, { status: 400 });
     }
 
-    // 1. Calcular total y procesar items para v1.1 (Números, no strings)
+    // 1. Preparar items y calcular total
     let calculatedTotal = 0;
-    const processedItems = items.map((item: any) => {
+    const processedItems = items.map((item: any, index: number) => {
       const unitPrice = Math.round(Number(item.precio));
       const quantity = Math.round(Number(item.cantidad));
       const itemTotal = unitPrice * quantity;
@@ -29,76 +35,93 @@ export async function POST(request: Request) {
 
       return {
         ciudad: "1", 
-        nombre: item.nombre.substring(0, 80).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
+        nombre: item.nombre.substring(0, 100).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
         cantidad: quantity,
-        precio_unitario: unitPrice,
-        total_monto: itemTotal,
-        vendedor_telefono: "0981000000",
-        vendedor_direccion: "Asunción",
+        categoria: "909",
+        public_key: PUBLIC_KEY,
+        url_imagen: item.imagen_url || "",
+        descripcion: item.nombre.substring(0, 100),
+        id_producto: index + 1,
+        precio_total: itemTotal,
+        vendedor_telefono: "",
+        vendedor_direccion: "",
         vendedor_direccion_referencia: "",
-        vendedor_comercio: "Don Negro Comercial",
-        vendedor_id: 1,
-        vendedor_email: "ventas@donegro.com",
-        categoria: 9 
+        vendedor_direccion_coordenadas: ""
       };
     });
 
-    // 2. Generar Token SHA1 v1.1: sha1(private_token + id_pedido + total_sin_decimales)
+    // 2. Generar Token SHA1 v2.0
     const hashData = `${PRIVATE_TOKEN}${orderId}${calculatedTotal}`;
     const token = crypto.createHash('sha1').update(hashData).digest('hex');
 
-    // 3. Limpiar datos del comprador
-    const cleanPhone = (customer.phone || "").replace(/\D/g, "").substring(0, 20);
+    // 3. Payload para Pagopar
+    const cleanPhone = (customer.phone || "").replace(/\D/g, "");
     const cleanDoc = (customer.documento || "").replace(/\D/g, "");
 
-    const pagoparOrder = {
+    const pagoparPayload = {
       token: token,
-      token_publico: PUBLIC_TOKEN,
-      comercio_pedido_id: orderId.toString(),
+      comprador: {
+        ruc: "",
+        email: customer.email || "ventas@donegro.com",
+        ciudad: "1",
+        nombre: (customer.name || "Cliente").substring(0, 45),
+        telefono: cleanPhone || "0981000000",
+        direccion: (customer.address || "Asunción").substring(0, 90),
+        documento: cleanDoc || "0",
+        coordenadas: "",
+        razon_social: (customer.name || "Cliente").substring(0, 45),
+        tipo_documento: "CI",
+        direccion_referencia: ""
+      },
+      public_key: PUBLIC_KEY,
       monto_total: calculatedTotal,
       tipo_pedido: "VENTA-COMERCIO",
-      descripcion_resumen: `Pedido_${orderId}`.substring(0, 80),
       compras_items: processedItems,
-      fecha_maxima_pago: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 19).replace('T', ' '),
-      usuario: {
-        nombre: (customer.name || "Cliente").substring(0, 45).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
-        tel: cleanPhone || "0981000000",
-        email: customer.email || "ventas@donegro.com",
-        direccion: (customer.address || "Asunción").substring(0, 90).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
-        ruc: "",
-        documento: cleanDoc,
-        tipo_documento: "1",
-        ciudad: "1"
-      }
+      fecha_maxima_pago: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 19).replace('T', ' '),
+      id_pedido_comercio: orderId.toString(),
+      descripcion_resumen: `Pedido #${orderId} en Don Negro`.substring(0, 80),
+      forma_pago: 1
     };
 
-    console.log("Enviando a Pagopar v1.1:", JSON.stringify(pagoparOrder, null, 2));
-
-    const response = await fetch("https://api.pagopar.com/api/comercio/1.1/generar-pedido", {
+    // 4. Iniciar Transacción en Pagopar (Paso #1)
+    const response = await fetch("https://api.pagopar.com/api/comercios/2.0/iniciar-transaccion", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(pagoparOrder)
+      body: JSON.stringify(pagoparPayload)
     });
 
     const result = await response.json();
-    console.log("Respuesta Pagopar v1.1:", JSON.stringify(result, null, 2));
 
-    if (result.respuesta === "OK" && result.resultado && result.resultado.length > 0) {
-      const paymentHash = result.resultado[0].data; 
+    if (result.respuesta === true && result.resultado && result.resultado.length > 0) {
+      const paymentHash = result.resultado[0].data;
+
+      // 5. ASOCIACIÓN (Paso #2): Guardar el hash en el pedido de Supabase
+      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE) {
+        const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+        await supabaseAdmin
+          .from('orders')
+          .update({ 
+            payment_hash: paymentHash,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId);
+      }
+
+      // 6. Preparar URL de redirección (Paso #2)
+      // Usamos /pagos/ como indica la doc 2.0
       return NextResponse.json({ 
-        url: `https://www.pagopar.com/pagar/${paymentHash}`, 
+        url: `https://www.pagopar.com/pagos/${paymentHash}`, 
         hash: paymentHash 
       });
     } else {
-      console.error("Error Pagopar API 1.1:", result);
       return NextResponse.json({ 
-        error: "Error en la pasarela de pago", 
-        details: result.resultado || result.respuesta 
+        error: "No se pudo iniciar la transacción", 
+        details: result.resultado || "Error desconocido de la API"
       }, { status: 400 });
     }
 
   } catch (error: any) {
-    console.error("Internal Error create-order:", error);
+    console.error("Error crítico en integración:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
