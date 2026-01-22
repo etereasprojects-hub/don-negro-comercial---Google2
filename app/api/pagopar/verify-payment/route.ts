@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Paso #4: Consulta de estado del pedido en tiempo real cuando el cliente retorna al sitio.
+ * Paso #3 del Validador de Pagopar: Consulta de estado proactiva.
  * Endpoint: https://api.pagopar.com/api/pedidos/1.1/traer
  */
 export async function POST(request: Request) {
@@ -13,19 +13,24 @@ export async function POST(request: Request) {
     const PRIVATE_TOKEN = process.env.PAGOPAR_PRIVATE_TOKEN;
 
     if (!PUBLIC_TOKEN || !PRIVATE_TOKEN) {
-      return NextResponse.json({ error: "Configuración de tokens incompleta en el servidor" }, { status: 500 });
+      console.error("Paso 3 Error: Tokens no configurados");
+      return NextResponse.json({ error: "Configuración de tokens incompleta" }, { status: 500 });
     }
 
-    // Token para consulta v1.1: Sha1(Private_key + "CONSULTA")
-    const tokenConsulta = crypto.createHash('sha1').update(`${PRIVATE_TOKEN}CONSULTA`).digest('hex');
+    // El token para "traer" DEBE ser sha1(clave_privada + "CONSULTA")
+    // Es vital que sea en minúsculas el digest hex
+    const tokenConsulta = crypto
+      .createHash('sha1')
+      .update(`${PRIVATE_TOKEN.trim()}CONSULTA`)
+      .digest('hex');
 
     const payload = {
       hash_pedido: hash,
       token: tokenConsulta,
-      token_publico: PUBLIC_TOKEN
+      token_publico: PUBLIC_TOKEN.trim()
     };
 
-    console.log("Paso 4: Consultando estado real del hash:", hash);
+    console.log("Consultando Paso 3 a Pagopar con Hash:", hash);
 
     const response = await fetch("https://api.pagopar.com/api/pedidos/1.1/traer", {
       method: "POST",
@@ -34,7 +39,9 @@ export async function POST(request: Request) {
     });
 
     const result = await response.json();
+    console.log("Respuesta de Pagopar Paso 3:", JSON.stringify(result));
 
+    // Pagopar marca el Paso 3 como exitoso si recibe esta consulta con el token correcto
     if (result.respuesta === true || result.respuesta === "OK") {
       if (result.resultado && result.resultado.length > 0) {
         const pedido = result.resultado[0];
@@ -42,25 +49,21 @@ export async function POST(request: Request) {
         const cancelado = pedido.cancelado === true || pedido.cancelado === "true";
         const orderId = pedido.comercio_pedido_id || pedido.numero_pedido;
 
-        // Actualización administrativa de la base de datos (con Service Role para saltar RLS)
         const supabaseAdmin = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Sincronizar estado en nuestra DB
         let statusLabel = pagado ? "completado" : (cancelado ? "rechazado" : "pendiente");
         
+        // Sincronizar con nuestra base de datos
         await supabaseAdmin
           .from('orders')
-          .update({ 
-            status: statusLabel,
-            updated_at: new Date().toISOString()
-          })
+          .update({ status: statusLabel, updated_at: new Date().toISOString() })
           .eq('id', orderId);
 
-        // Registrar venta si está pagado e implementando IDEMPOTENCIA
         if (pagado) {
+          // Lógica de registro de venta (idempotente)
           const { data: saleExists } = await supabaseAdmin
             .from('sales')
             .select('id')
@@ -87,16 +90,20 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ 
           status: pagado ? "paid" : (cancelado ? "failed" : "pending"),
-          message: pedido.resultado_texto || "",
+          message: pedido.resultado_texto || "Consulta exitosa",
           paymentInfo: pedido.mensaje_resultado_pago || null 
         });
       }
     }
 
-    return NextResponse.json({ status: "failed", message: "No se pudo recuperar la información del pago" }, { status: 404 });
+    // Si llegamos aquí, Pagopar recibió la petición pero algo no cuadró (ej: hash no existe en staging)
+    return NextResponse.json({ 
+      status: "failed", 
+      message: result.resultado || "No se pudo validar el pedido con Pagopar" 
+    }, { status: 200 });
 
   } catch (error: any) {
-    console.error("Error en verify-payment:", error);
+    console.error("Error crítico verify-payment:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

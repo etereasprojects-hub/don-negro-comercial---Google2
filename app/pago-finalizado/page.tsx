@@ -8,24 +8,21 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Clock, Loader2, ShoppingBag, Info } from "lucide-react";
 
-/**
- * Componente principal que maneja la lógica de verificación tras la redirección de Pagopar.
- */
 function PagoFinalizadoContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "success" | "pending" | "failed">("loading");
   const [message, setMessage] = useState("Verificando transacción...");
   const [paymentInfo, setPaymentInfo] = useState<{titulo: string, descripcion: string} | null>(null);
   
-  // Pagopar envía el hash en la URL especificada: ?hash=($hash)
-  const hash = searchParams.get("hash");
+  // Limpiamos el hash de posibles caracteres extraños de la URL
+  const rawHash = searchParams.get("hash");
+  const hash = rawHash?.replace(/[()]/g, "");
 
   useEffect(() => {
     async function verify() {
-      // Validamos que el hash no sea un placeholder
-      if (!hash || hash === "($hash)" || hash === "$hash") {
+      if (!hash || hash === "$hash" || hash === "($hash)") {
         setStatus("failed");
-        setMessage("No se recibió una referencia de pago válida.");
+        setMessage("Esperando confirmación de pago. Si ya pagaste, tu pedido será procesado en breve.");
         return;
       }
 
@@ -44,15 +41,15 @@ function PagoFinalizadoContent() {
         } else if (data.status === "pending") {
           setStatus("pending");
           setMessage(data.message || "Tu pago está pendiente de aprobación.");
-          setPaymentInfo(data.paymentInfo); // Instrucciones para efectivo (Pago Express, etc)
+          setPaymentInfo(data.paymentInfo);
         } else {
           setStatus("failed");
-          setMessage(data.message || "La transacción no pudo ser validada.");
+          setMessage(data.message || "No pudimos verificar el estado automáticamente.");
         }
       } catch (error) {
         console.error("Error verify:", error);
         setStatus("failed");
-        setMessage("Ocurrió un error al conectar con la pasarela.");
+        setMessage("Error de conexión con la pasarela de pagos.");
       }
     }
 
@@ -64,7 +61,7 @@ function PagoFinalizadoContent() {
       <div className="bg-white p-8 md:p-12 rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
         {status === "loading" && (
           <div className="flex flex-col items-center">
-            <Loader2 className="w-16 h-16 text-blue-500 animate-spin mb-6" />
+            <Loader2 className="w-16 h-16 text-[#D91E7A] animate-spin mb-6" />
             <h1 className="text-2xl font-bold mb-2">Validando con Pagopar</h1>
             <p className="text-gray-500">{message}</p>
           </div>
@@ -97,9 +94,7 @@ function PagoFinalizadoContent() {
                   <span>Instrucciones para completar el pago:</span>
                 </div>
                 <div 
-                  className="text-gray-700 text-sm prose prose-sm max-w-none 
-                    [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:space-y-1 
-                    [&>li]:mb-1 [&>strong]:text-blue-900"
+                  className="text-gray-700 text-sm prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ __html: paymentInfo.descripcion }}
                 />
               </div>
@@ -112,7 +107,7 @@ function PagoFinalizadoContent() {
             <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
               <XCircle size={48} />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Verificación Fallida</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Estado del Pago</h1>
             <p className="text-gray-600 mb-8 text-lg">{message}</p>
           </div>
         )}
@@ -120,7 +115,7 @@ function PagoFinalizadoContent() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-4 pt-8 border-t">
           <Link href="/productos">
             <Button variant="outline" className="w-full sm:w-auto px-8">
-              Ver otros productos
+              Ver Catálogo
             </Button>
           </Link>
           <Link href="/">
@@ -140,7 +135,7 @@ export default function PagoFinalizadoPage() {
     <>
       <Header />
       <main className="min-h-screen bg-gray-50 pt-32 pb-20">
-        <Suspense fallback={null}>
+        <Suspense fallback={<div className="flex justify-center pt-20"><Loader2 className="animate-spin text-[#D91E7A]" /></div>}>
           <PagoFinalizadoContent />
         </Suspense>
       </main>
