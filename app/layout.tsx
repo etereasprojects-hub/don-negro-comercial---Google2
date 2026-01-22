@@ -86,11 +86,11 @@ export const metadata: Metadata = {
 /**
  * RootLayout component for the application.
  */
-// Fixed: children is now optional to avoid TS error when RootLayout is invoked with empty props {}
+// Fixed: children is now required to resolve TypeScript error 'Property children is missing in type {} but required in type { children: React.ReactNode; }'
 export default function RootLayout({
   children,
 }: {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <html lang="es">

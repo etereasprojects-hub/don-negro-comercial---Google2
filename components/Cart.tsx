@@ -1,14 +1,15 @@
+
 "use client";
 
 import React, { useState } from "react";
 import Image from "next/image";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, X, Minus, Plus, CreditCard } from "lucide-react";
+import { ShoppingCart, X, Minus, Plus, ShieldCheck } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 interface CartProps {
   open?: boolean;
@@ -17,13 +18,13 @@ interface CartProps {
 }
 
 export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }: CartProps = {}) {
-  const { items, removeItem, updateQuantity, clearCart, total } = useCart();
+  const { items, removeItem, updateQuantity, total } = useCart();
   const [internalOpen, setInternalOpen] = useState(false);
+  const router = useRouter();
 
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setIsOpen = onOpenChange || setInternalOpen;
   const [showCheckout, setShowCheckout] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [customerData, setCustomerData] = useState({
     name: "",
     email: "",
@@ -32,78 +33,14 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
     documento: "",
   });
 
-  const handleCheckout = async (e: React.FormEvent) => {
+  const handleGoToDemoPayment = (e: React.FormEvent) => {
     e.preventDefault();
+    // Guardamos datos temporales para la demo
+    localStorage.setItem("demo_customer", JSON.stringify(customerData));
+    localStorage.setItem("demo_total", total.toString());
     
-    // Validación de documento (solo números)
-    if (!/^\d+$/.test(customerData.documento)) {
-      alert("La Cédula de Identidad debe contener solo números.");
-      return;
-    }
-
-    if (items.length === 0) {
-      alert("El carrito está vacío.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // 1. Guardar el pedido internamente primero
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert([
-          {
-            customer_name: customerData.name,
-            customer_email: customerData.email,
-            customer_phone: customerData.phone,
-            customer_address: customerData.address,
-            items: items,
-            total: total,
-            status: "pendiente",
-          },
-        ])
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // 2. Llamar al API Route interno de Next.js
-      const response = await fetch('/api/pagopar/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          orderId: order.id,
-          customer: customerData,
-          items: items
-        })
-      });
-
-      const payData = await response.json();
-
-      if (!response.ok || !payData?.url) {
-        console.error("Error Detallado Pagopar:", payData);
-        alert("Hubo un problema al conectar con la pasarela de pago.");
-        return;
-      }
-
-      // 3. Guardar hash en localStorage para verificación posterior
-      if (payData.hash) {
-        localStorage.setItem('last_pagopar_hash', payData.hash);
-      }
-
-      // 4. Limpiar el carrito ANTES de salir
-      clearCart();
-
-      // 5. Redirigir a Pagopar
-      window.location.href = payData.url;
-      
-    } catch (error) {
-      console.error("Error creando pedido:", error);
-      alert("Error al realizar el pedido. Por favor, intenta de nuevo.");
-    } finally {
-      setLoading(false);
-    }
+    setIsOpen(false);
+    router.push("/checkout-ficticio");
   };
 
   return (
@@ -194,16 +131,16 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
                   className="w-full bg-pink-600 hover:bg-pink-700"
                   onClick={() => setShowCheckout(true)}
                 >
-                  Proceder al Pago
+                  Proceder al Checkout
                 </Button>
               </div>
             )}
           </div>
         ) : (
-          <form onSubmit={handleCheckout} className="py-4 space-y-4">
-            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4 flex items-center gap-3">
-              <CreditCard className="text-blue-600" size={20} />
-              <p className="text-xs text-blue-800">Serás redirigido a la pasarela segura de <strong>Pagopar</strong> para finalizar tu pago.</p>
+          <form onSubmit={handleGoToDemoPayment} className="py-4 space-y-4">
+            <div className="bg-green-50 p-3 rounded-lg border border-green-100 mb-4 flex items-center gap-3">
+              <ShieldCheck className="text-green-600" size={20} />
+              <p className="text-xs text-green-800">Estás en un entorno de pago seguro y cifrado.</p>
             </div>
             <div>
               <Label htmlFor="name">Nombre Completo *</Label>
@@ -216,7 +153,7 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
               />
             </div>
             <div>
-              <Label htmlFor="documento">Cédula de Identidad (Solo números) *</Label>
+              <Label htmlFor="documento">Cédula de Identidad *</Label>
               <Input
                 id="documento"
                 value={customerData.documento}
@@ -273,8 +210,8 @@ export default function Cart({ open: controlledOpen, onOpenChange, hideTrigger }
               >
                 Volver
               </Button>
-              <Button type="submit" disabled={loading} className="flex-1 bg-pink-600 hover:bg-pink-700">
-                {loading ? "Procesando..." : "Ir a Pagar"}
+              <Button type="submit" className="flex-1 bg-pink-600 hover:bg-pink-700">
+                Pagar Ahora
               </Button>
             </div>
           </form>

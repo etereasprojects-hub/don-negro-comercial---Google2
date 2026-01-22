@@ -2,7 +2,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Package, ShoppingCart, TrendingUp, CreditCard, MessageSquare, Calendar, MessageCircle, Brain, Receipt, Settings, Image, Plug, FolderTree, Database } from "lucide-react";
+import { Package, ShoppingCart, TrendingUp, CreditCard, MessageSquare, Calendar, MessageCircle, Brain, Receipt, Settings, Image, Plug, FolderTree, Beaker } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface AdminTabsProps {
@@ -15,6 +15,7 @@ const tabs = [
   { id: "pedidos", label: "Pedidos", icon: ShoppingCart, count: null },
   { id: "ventas", label: "Ventas", icon: TrendingUp, count: null },
   { id: "creditos", label: "Pagos a Crédito", icon: CreditCard, count: null },
+  { id: "test-pago", label: "Test Pago (Real)", icon: Beaker, count: null },
   { id: "banners", label: "Banners", icon: Image, count: null },
   { id: "conexion-api", label: "Conexión API", icon: Plug, count: null },
   { id: "configuracion", label: "Configuración", icon: Settings, count: null },
@@ -29,32 +30,25 @@ export default function AdminTabs({ activeTab }: AdminTabsProps) {
   const router = useRouter();
 
   const handleTabClick = (tabId: string) => {
-    if (tabId === "productos") {
-      router.push("/owner/dashboard");
-    } else if (tabId === "categorias") {
-      router.push("/owner/categorias");
-    } else if (tabId === "pedidos") {
-      router.push("/owner/pedidos");
-    } else if (tabId === "ventas") {
-      router.push("/owner/ventas");
-    } else if (tabId === "creditos") {
-      router.push("/owner/creditos");
-    } else if (tabId === "banners") {
-      router.push("/owner/banners");
-    } else if (tabId === "conexion-api") {
-      router.push("/owner/conexion-api");
-    } else if (tabId === "configuracion") {
-      router.push("/owner/configuracion");
-    } else if (tabId === "mensajes") {
-      router.push("/owner/mensajes");
-    } else if (tabId === "citas") {
-      router.push("/owner/citas");
-    } else if (tabId === "chats") {
-      router.push("/owner/chats");
-    } else if (tabId === "ia") {
-      router.push("/owner/ia");
-    } else if (tabId === "facturacion") {
-      router.push("/owner/facturacion");
+    const routes: Record<string, string> = {
+      "productos": "/owner/dashboard",
+      "categorias": "/owner/categorias",
+      "pedidos": "/owner/pedidos",
+      "ventas": "/owner/ventas",
+      "creditos": "/owner/creditos",
+      "test-pago": "/owner/test-pago",
+      "banners": "/owner/banners",
+      "conexion-api": "/owner/conexion-api",
+      "configuracion": "/owner/configuracion",
+      "mensajes": "/owner/mensajes",
+      "citas": "/owner/citas",
+      "chats": "/owner/chats",
+      "ia": "/owner/ia",
+      "facturacion": "/owner/facturacion"
+    };
+
+    if (routes[tabId]) {
+      router.push(routes[tabId]);
     }
   };
 
