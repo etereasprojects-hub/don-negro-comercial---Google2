@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "El carrito está vacío" }, { status: 400 });
     }
 
-    // 1. Preparar items y calcular total
+    // 1. Preparar items y calcular total (Limpiando campos redundantes para v2.0)
     let calculatedTotal = 0;
     const processedItems = items.map((item: any, index: number) => {
       const unitPrice = Math.round(Number(item.precio));
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         nombre: item.nombre.substring(0, 100).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
         cantidad: quantity,
         categoria: "909",
-        public_key: PUBLIC_KEY,
+        // En v2.0 la public_key ya no va dentro de cada item
         url_imagen: item.imagen_url || "",
         descripcion: item.nombre.substring(0, 100),
         id_producto: index + 1,
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
     });
 
     // 2. Generar Token SHA1 v2.0
+    // Fórmula: sha1(token_privado + id_pedido_comercio + monto_total)
     const hashData = `${PRIVATE_TOKEN}${orderId}${calculatedTotal}`;
     const token = crypto.createHash('sha1').update(hashData).digest('hex');
 
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
         nombre: (customer.name || "Cliente").substring(0, 45),
         telefono: cleanPhone || "0981000000",
         direccion: (customer.address || "Asunción").substring(0, 90),
-        documento: cleanDoc || "0",
+        documento: cleanDoc || "4444444", // Fallback seguro para validación
         coordenadas: "",
         razon_social: (customer.name || "Cliente").substring(0, 45),
         tipo_documento: "CI",
@@ -79,8 +80,8 @@ export async function POST(request: Request) {
       compras_items: processedItems,
       fecha_maxima_pago: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 19).replace('T', ' '),
       id_pedido_comercio: orderId.toString(),
-      descripcion_resumen: `Pedido #${orderId} en Don Negro`.substring(0, 80),
-      forma_pago: 1
+      descripcion_resumen: `Pedido #${orderId} en Don Negro`.substring(0, 80)
+      // Se omite forma_pago para que Pagopar use todas las disponibles por defecto
     };
 
     // 4. Iniciar Transacción en Pagopar (Paso #1)
@@ -107,8 +108,7 @@ export async function POST(request: Request) {
           .eq('id', orderId);
       }
 
-      // 6. Preparar URL de redirección (Paso #2)
-      // Usamos /pagos/ como indica la doc 2.0
+      // 6. Retornar URL de pago oficial
       return NextResponse.json({ 
         url: `https://www.pagopar.com/pagos/${paymentHash}`, 
         hash: paymentHash 
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     } else {
       return NextResponse.json({ 
         error: "No se pudo iniciar la transacción", 
-        details: result.resultado || "Error desconocido de la API"
+        details: result.resultado || result.resultado_texto || "Error de validación comercial"
       }, { status: 400 });
     }
 
