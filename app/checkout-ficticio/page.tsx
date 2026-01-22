@@ -59,7 +59,7 @@ export default function CheckoutFicticio() {
                   <CreditCard size={32} />
                 </div>
               </div>
-              <CardTitle className="text-2xl font-bold">Pasarela de Pago</CardTitle>
+              <CardTitle className="text-2xl font-bold">Confirme el pago</CardTitle>
               <p className="text-gray-500">Monto a pagar: <span className="font-bold text-pink-600">₲ {Number(total).toLocaleString("es-PY")}</span></p>
             </CardHeader>
             <CardContent>
