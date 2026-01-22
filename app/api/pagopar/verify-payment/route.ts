@@ -22,13 +22,16 @@ export async function POST(request: Request) {
       hash_pedido: hash
     };
 
-    const response = await fetch("https://api.pagopar.com/api/pedidos/1.1/traer", {
+    console.log("Consultando pedido:", hash);
+
+    const response = await fetch("https://api.pagopar.com/comercio/1.0/consultar-pedido", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
 
     const result = await response.json();
+    console.log("Respuesta consulta:", JSON.stringify(result, null, 2));
 
     if (result.respuesta === "OK" && result.resultado && result.resultado.length > 0) {
       const pedido = result.resultado[0];

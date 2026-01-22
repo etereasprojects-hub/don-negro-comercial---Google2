@@ -75,13 +75,16 @@ export async function POST(request: Request) {
       }
     };
 
-    const response = await fetch("https://api.pagopar.com/api/comercio/1.0/generar-pedido", {
+    console.log("Enviando a Pagopar:", JSON.stringify(pagoparOrder, null, 2));
+
+    const response = await fetch("https://api.pagopar.com/comercio/1.0/generar-pedido", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(pagoparOrder)
     });
 
     const result = await response.json();
+    console.log("Respuesta Pagopar:", JSON.stringify(result, null, 2));
 
     if (result.respuesta === "OK" && result.resultado && result.resultado.length > 0) {
       const paymentHash = result.resultado[0].data; 
