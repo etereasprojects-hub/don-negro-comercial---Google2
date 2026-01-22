@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     default: 'Don Negro Comercial - Tu Comercial de Confianza en Paraguay',
     template: '%s | Don Negro Comercial'
   },
-  description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles, indumentaria deportiva y aire acondicionado en Asunción, Paraguay. Calidad garantizada y atención personalizada. Compra al contado o a crédito.',
+  description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles, indumentaria deportiva and aire acondicionado en Asunción, Paraguay. Calidad garantizada and atención personalizada. Compra al contado o a crédito.',
   icons: {
     icon: [
       { url: '/favicon.png', type: 'image/png' },
@@ -59,13 +59,13 @@ export const metadata: Metadata = {
     locale: 'es_PY',
     url: 'https://www.donegro.com',
     title: 'Don Negro Comercial - Tu Comercial de Confianza en Paraguay',
-    description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles y más en Paraguay. Compra al contado o a crédito.',
+    description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles and más en Paraguay. Compra al contado o a crédito.',
     siteName: 'Don Negro Comercial',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Don Negro Comercial - Tu Comercial de Confianza',
-    description: 'Los mejores productos en electrónica, electrodomésticos y muebles en Paraguay.',
+    description: 'Los mejores productos en electrónica, electrodomésticos and muebles en Paraguay.',
   },
   robots: {
     index: true,
@@ -86,7 +86,7 @@ export const metadata: Metadata = {
 /**
  * RootLayout component for the application.
  */
-// Fixed children prop type to be an optional ReactNode as expected by Next.js internal type inference and to fix TS error when children are missing in type '{}'
+// Fixed: children is now optional to avoid TS error when RootLayout is invoked with empty props {}
 export default function RootLayout({
   children,
 }: {

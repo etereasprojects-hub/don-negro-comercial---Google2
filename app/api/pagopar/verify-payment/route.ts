@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
@@ -13,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Tokens no configurados" }, { status: 500 });
     }
 
-    // Token para consulta v1.0: sha1(token_privado + "CONSULTA")
+    // Token para consulta v1.1: sha1(token_privado + "CONSULTA")
     const hashConsulta = crypto.createHash('sha1').update(`${PRIVATE_TOKEN}CONSULTA`).digest('hex');
 
     const payload = {
@@ -22,16 +21,16 @@ export async function POST(request: Request) {
       hash_pedido: hash
     };
 
-    console.log("Consultando pedido:", hash);
+    console.log("Consultando pedido en Pagopar:", hash);
 
-    const response = await fetch("https://api.pagopar.com/comercio/1.0/consultar-pedido", {
+    const response = await fetch("https://api.pagopar.com/api/pedidos/1.1/traer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
 
     const result = await response.json();
-    console.log("Respuesta consulta:", JSON.stringify(result, null, 2));
+    console.log("Respuesta consulta v1.1:", JSON.stringify(result, null, 2));
 
     if (result.respuesta === "OK" && result.resultado && result.resultado.length > 0) {
       const pedido = result.resultado[0];
@@ -39,7 +38,7 @@ export async function POST(request: Request) {
       const cancelado = pedido.cancelado === true || pedido.cancelado === "true";
       const orderId = pedido.comercio_pedido_id;
 
-      // Usar Service Role Key si está disponible, sino Anon Key
+      // Usar Service Role Key para bypass de RLS administrativo
       const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

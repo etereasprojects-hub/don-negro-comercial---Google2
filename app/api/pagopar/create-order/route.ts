@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 
@@ -20,8 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "El carrito está vacío" }, { status: 400 });
     }
 
-    // 1. Calcular total y procesar items para v1.0
-    // IMPORTANTE: Pagopar v1.0 espera precios y totales como strings
+    // 1. Calcular total y procesar items para v1.1 (Números, no strings)
     let calculatedTotal = 0;
     const processedItems = items.map((item: any) => {
       const unitPrice = Math.round(Number(item.precio));
@@ -30,22 +28,22 @@ export async function POST(request: Request) {
       calculatedTotal += itemTotal;
 
       return {
-        ciudad: "1", // Asunción por defecto
+        ciudad: "1", 
         nombre: item.nombre.substring(0, 80).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
-        cantidad: quantity.toString(),
-        precio_unitario: unitPrice.toString(),
-        total_monto: itemTotal.toString(),
+        cantidad: quantity,
+        precio_unitario: unitPrice,
+        total_monto: itemTotal,
         vendedor_telefono: "0981000000",
         vendedor_direccion: "Asunción",
         vendedor_direccion_referencia: "",
         vendedor_comercio: "Don Negro Comercial",
-        vendedor_id: "1",
+        vendedor_id: 1,
         vendedor_email: "ventas@donegro.com",
-        categoria: "9" // Electrónica / Hogar
+        categoria: 9 
       };
     });
 
-    // 2. Generar Token SHA1 v1.0: sha1(private_token + id_pedido + total_sin_decimales)
+    // 2. Generar Token SHA1 v1.1: sha1(private_token + id_pedido + total_sin_decimales)
     const hashData = `${PRIVATE_TOKEN}${orderId}${calculatedTotal}`;
     const token = crypto.createHash('sha1').update(hashData).digest('hex');
 
@@ -54,37 +52,36 @@ export async function POST(request: Request) {
     const cleanDoc = (customer.documento || "").replace(/\D/g, "");
 
     const pagoparOrder = {
-      token_publico: PUBLIC_TOKEN,
       token: token,
+      token_publico: PUBLIC_TOKEN,
       comercio_pedido_id: orderId.toString(),
-      monto_total: calculatedTotal.toString(),
+      monto_total: calculatedTotal,
       tipo_pedido: "VENTA-COMERCIO",
       descripcion_resumen: `Pedido_${orderId}`.substring(0, 80),
       compras_items: processedItems,
-      fecha_maxima_pago: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 19).replace('T', ' '), // 3 días
+      fecha_maxima_pago: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 19).replace('T', ' '),
       usuario: {
         nombre: (customer.name || "Cliente").substring(0, 45).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
-        apellido: "", // Campo obligatorio en v1.0 aunque sea vacío
         tel: cleanPhone || "0981000000",
         email: customer.email || "ventas@donegro.com",
         direccion: (customer.address || "Asunción").substring(0, 90).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
-        ruc: "", // Campo obligatorio en v1.0 aunque sea vacío
+        ruc: "",
         documento: cleanDoc,
-        tipo_documento: "1", // CI
+        tipo_documento: "1",
         ciudad: "1"
       }
     };
 
-    console.log("Enviando a Pagopar:", JSON.stringify(pagoparOrder, null, 2));
+    console.log("Enviando a Pagopar v1.1:", JSON.stringify(pagoparOrder, null, 2));
 
-    const response = await fetch("https://api.pagopar.com/comercio/1.0/generar-pedido", {
+    const response = await fetch("https://api.pagopar.com/api/comercio/1.1/generar-pedido", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(pagoparOrder)
     });
 
     const result = await response.json();
-    console.log("Respuesta Pagopar:", JSON.stringify(result, null, 2));
+    console.log("Respuesta Pagopar v1.1:", JSON.stringify(result, null, 2));
 
     if (result.respuesta === "OK" && result.resultado && result.resultado.length > 0) {
       const paymentHash = result.resultado[0].data; 
@@ -93,7 +90,7 @@ export async function POST(request: Request) {
         hash: paymentHash 
       });
     } else {
-      console.error("Error Pagopar API 1.0:", result);
+      console.error("Error Pagopar API 1.1:", result);
       return NextResponse.json({ 
         error: "Error en la pasarela de pago", 
         details: result.resultado || result.respuesta 
