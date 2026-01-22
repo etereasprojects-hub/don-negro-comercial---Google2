@@ -9,7 +9,7 @@ export async function POST(request: Request) {
 
     if (!PUBLIC_TOKEN || !PRIVATE_TOKEN) {
       return NextResponse.json(
-        { error: "Error de configuración: Tokens de Pagopar no definidos en el servidor." },
+        { error: "Tokens de Pagopar no configurados" },
         { status: 500 }
       );
     }
@@ -20,7 +20,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "El carrito está vacío" }, { status: 400 });
     }
 
-    // 1. Calcular total y formatear items para v2.0
+    // 1. Calcular total y procesar items para v1.0
+    // IMPORTANTE: Pagopar v1.0 espera precios y totales como strings
     let calculatedTotal = 0;
     const processedItems = items.map((item: any) => {
       const unitPrice = Math.round(Number(item.precio));
@@ -29,63 +30,67 @@ export async function POST(request: Request) {
       calculatedTotal += itemTotal;
 
       return {
-        public_key: PUBLIC_TOKEN,
-        id_producto: 1, 
+        ciudad: "1", // Asunción por defecto
         nombre: item.nombre.substring(0, 80).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
-        descripcion: item.nombre.substring(0, 100),
-        precio_total: unitPrice,
-        cantidad: quantity,
-        url_imagen: item.imagen_url || "",
-        categoria: 9, 
-        ciudad: 1     
+        cantidad: quantity.toString(),
+        precio_unitario: unitPrice.toString(),
+        total_monto: itemTotal.toString(),
+        vendedor_telefono: "0981000000",
+        vendedor_direccion: "Asunción",
+        vendedor_direccion_referencia: "",
+        vendedor_comercio: "Don Negro Comercial",
+        vendedor_id: "1",
+        vendedor_email: "ventas@donegro.com",
+        categoria: "9" // Electrónica / Hogar
       };
     });
 
-    // 2. Generar Token SHA1 v2.0: private_token + id_pedido + total.toFixed(2)
-    // El total debe tener 2 decimales para el hash según documentación oficial
-    const totalFixed = calculatedTotal.toFixed(2);
-    const hashData = `${PRIVATE_TOKEN}${orderId}${totalFixed}`;
+    // 2. Generar Token SHA1 v1.0: sha1(private_token + id_pedido + total_sin_decimales)
+    const hashData = `${PRIVATE_TOKEN}${orderId}${calculatedTotal}`;
     const token = crypto.createHash('sha1').update(hashData).digest('hex');
 
-    // 3. Limpiar datos del comprador para evitar errores de validación en la pasarela
+    // 3. Limpiar datos del comprador
     const cleanPhone = (customer.phone || "").replace(/\D/g, "").substring(0, 20);
     const cleanDoc = (customer.documento || "").replace(/\D/g, "");
 
-    const pagoparPayload = {
-      public_key: PUBLIC_TOKEN,
+    const pagoparOrder = {
+      token_publico: PUBLIC_TOKEN,
       token: token,
-      id_pedido_comercio: orderId.toString(),
-      monto_total: calculatedTotal,
-      descripcion_resumen: `Pedido ${orderId} - Don Negro`.substring(0, 80),
-      fecha_maxima_pago: new Date(Date.now() + 86400000).toISOString().slice(0, 19).replace('T', ' '),
-      comprador: {
+      comercio_pedido_id: orderId.toString(),
+      monto_total: calculatedTotal.toString(),
+      tipo_pedido: "VENTA-COMERCIO",
+      descripcion_resumen: `Pedido_${orderId}`.substring(0, 80),
+      compras_items: processedItems,
+      fecha_maxima_pago: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 19).replace('T', ' '), // 3 días
+      usuario: {
         nombre: (customer.name || "Cliente").substring(0, 45).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
-        email: customer.email || "ventas@donegro.com",
+        apellido: "", // Campo obligatorio en v1.0 aunque sea vacío
         tel: cleanPhone || "0981000000",
+        email: customer.email || "ventas@donegro.com",
         direccion: (customer.address || "Asunción").substring(0, 90).replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ''),
+        ruc: "", // Campo obligatorio en v1.0 aunque sea vacío
         documento: cleanDoc,
-        tipo_documento: 1, 
-        ciudad: 1          
-      },
-      compras_items: processedItems
+        tipo_documento: "1", // CI
+        ciudad: "1"
+      }
     };
 
-    const response = await fetch("https://api.pagopar.com/api/comercios/2.0/iniciar-transaccion", {
+    const response = await fetch("https://api.pagopar.com/api/comercio/1.0/generar-pedido", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(pagoparPayload)
+      body: JSON.stringify(pagoparOrder)
     });
 
     const result = await response.json();
 
-    if (result.respuesta === "OK" && result.resultado) {
-      const paymentHash = result.resultado; 
+    if (result.respuesta === "OK" && result.resultado && result.resultado.length > 0) {
+      const paymentHash = result.resultado[0].data; 
       return NextResponse.json({ 
-        url: `https://www.pagopar.com/pagos/${paymentHash}`, 
+        url: `https://www.pagopar.com/pagar/${paymentHash}`, 
         hash: paymentHash 
       });
     } else {
-      console.error("Error Pagopar API:", result);
+      console.error("Error Pagopar API 1.0:", result);
       return NextResponse.json({ 
         error: "Error en la pasarela de pago", 
         details: result.resultado || result.respuesta 

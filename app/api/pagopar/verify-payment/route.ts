@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
@@ -9,16 +10,16 @@ export async function POST(request: Request) {
     const PRIVATE_TOKEN = process.env.PAGOPAR_PRIVATE_TOKEN;
 
     if (!PUBLIC_TOKEN || !PRIVATE_TOKEN) {
-      throw new Error("Tokens de Pagopar no configurados");
+      return NextResponse.json({ error: "Tokens no configurados" }, { status: 500 });
     }
 
-    // Token para consulta v1.1: sha1(token_privado + hash_pedido)
-    const tokenConsulta = crypto.createHash('sha1').update(`${PRIVATE_TOKEN}${hash}`).digest('hex');
+    // Token para consulta v1.0: sha1(token_privado + "CONSULTA")
+    const hashConsulta = crypto.createHash('sha1').update(`${PRIVATE_TOKEN}CONSULTA`).digest('hex');
 
     const payload = {
-      hash_pedido: hash,
-      token: tokenConsulta,
-      public_key: PUBLIC_TOKEN
+      token: hashConsulta,
+      token_publico: PUBLIC_TOKEN,
+      hash_pedido: hash
     };
 
     const response = await fetch("https://api.pagopar.com/api/pedidos/1.1/traer", {
@@ -35,12 +36,13 @@ export async function POST(request: Request) {
       const cancelado = pedido.cancelado === true || pedido.cancelado === "true";
       const orderId = pedido.comercio_pedido_id;
 
+      // Usar Service Role Key si está disponible, sino Anon Key
       const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
 
-      // Actualizar estado del pedido en base al resultado real de Pagopar
+      // Actualizar estado del pedido
       let statusLabel = pagado ? "completado" : (cancelado ? "rechazado" : "pendiente");
       
       await supabaseAdmin
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
         })
         .eq('id', orderId);
 
-      // Si está pagado, asegurar que exista el registro en la tabla 'sales'
+      // Lógica de IDEMPOTENCIA para Ventas
       if (pagado) {
         const { data: saleExists } = await supabaseAdmin
           .from('sales')
@@ -80,7 +82,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ 
         status: pagado ? "paid" : (cancelado ? "failed" : "pending"),
-        message: result.resultado[0].resultado_texto || ""
+        message: pedido.resultado_texto || ""
       });
     }
 

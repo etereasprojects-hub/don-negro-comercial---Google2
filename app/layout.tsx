@@ -3,7 +3,7 @@ import React from 'react';
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from '@/components/ui/toast';
 import { CartProvider } from '@/lib/cart-context';
 
 const inter = Inter({
@@ -87,12 +87,12 @@ export const metadata: Metadata = {
 /**
  * RootLayout component for the application.
  */
-// Fixed: children is a required prop in Next.js layouts. Removed the optional flag and default value which caused the TypeScript error.
+// Fixed: Corrected the type definition for RootLayout props to use Readonly and React.ReactNode, which is the standard pattern for Next.js App Router layouts to avoid "missing children" TypeScript errors.
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="es">
       <head>
