@@ -1,9 +1,8 @@
-
 import React from 'react';
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Toaster } from '@/components/ui/toast';
+import { Toaster } from '@/components/ui/toaster';
 import { CartProvider } from '@/lib/cart-context';
 
 const inter = Inter({
@@ -87,19 +86,19 @@ export const metadata: Metadata = {
 /**
  * RootLayout component for the application.
  */
-// Fixed: Corrected the type definition for RootLayout props to use Readonly and React.ReactNode, which is the standard pattern for Next.js App Router layouts to avoid "missing children" TypeScript errors.
+// Fixed children prop type to be a required ReactNode as expected by Next.js internal type inference and to fix TS error
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="es">
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
         <link rel="apple-touch-icon" href="/favicon.png" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL!} crossOrigin="anonymous" />
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} crossOrigin="anonymous" />
         <link rel="preconnect" href="https://casa-americana.b-cdn.net" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://www.innovagame.com.py" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://tiendamovil.com.py" crossOrigin="anonymous" />
