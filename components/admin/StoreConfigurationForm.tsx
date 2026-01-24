@@ -5,13 +5,14 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Save, Upload, Facebook, Instagram, Twitter } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Facebook, Instagram, Twitter, Image as ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface StoreConfig {
   id: string;
   store_name: string;
   logo_url: string | null;
+  favicon_url: string | null;
   email: string | null;
   whatsapp_number: string | null;
   whatsapp_24_7: string | null;
@@ -59,6 +60,7 @@ export default function StoreConfigurationForm() {
   const [hours, setHours] = useState<StoreHours[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
 
   const [newLocation, setNewLocation] = useState({ name: '', address: '', phone: '' });
   const [newSocial, setNewSocial] = useState({ platform: 'facebook', url: '' });
@@ -163,7 +165,6 @@ export default function StoreConfigurationForm() {
     }
   };
 
-  // Fixed React namespace error by importing React
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !config) return;
 
@@ -199,6 +200,44 @@ export default function StoreConfigurationForm() {
       alert('Error al subir el logo');
     } finally {
       setUploadingLogo(false);
+    }
+  };
+
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !config) return;
+
+    const file = e.target.files[0];
+    setUploadingFavicon(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `favicon-${Date.now()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('logos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('store_configuration')
+        .update({ favicon_url: publicUrl })
+        .eq('id', config.id);
+
+      if (updateError) throw updateError;
+
+      setConfig({ ...config, favicon_url: publicUrl });
+      alert('Favicon actualizado exitosamente. Los cambios pueden tardar unos segundos en reflejarse en el navegador.');
+    } catch (error) {
+      console.error('Error uploading favicon:', error);
+      alert('Error al subir el favicon');
+    } finally {
+      setUploadingFavicon(false);
     }
   };
 
@@ -385,28 +424,60 @@ export default function StoreConfigurationForm() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Logo del Comercio</label>
-            {config.logo_url && (
-              <div className="mb-4">
-                <img src={config.logo_url} alt="Logo" className="h-24 object-contain" />
+          <div className="pt-4 border-t">
+            <h4 className="font-semibold mb-4 flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-gray-500" />
+              Identidad Visual
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Sección Logo */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Logo del Comercio</label>
+                {config.logo_url && (
+                  <div className="mb-4 p-2 bg-gray-50 rounded-lg border border-dashed inline-block">
+                    <img src={config.logo_url} alt="Logo" className="h-24 object-contain" />
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={uploadingLogo}
+                    className="flex-1"
+                  />
+                  {uploadingLogo && <span className="text-sm text-gray-500 animate-pulse">Subiendo...</span>}
+                </div>
               </div>
-            )}
-            <div className="flex items-center gap-2">
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoUpload}
-                disabled={uploadingLogo}
-                className="flex-1"
-              />
-              {uploadingLogo && <span className="text-sm text-gray-500">Subiendo...</span>}
+
+              {/* Sección Favicon */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Favicon del Sitio (Ícono de pestaña)</label>
+                {config.favicon_url && (
+                  <div className="mb-4 p-2 bg-gray-50 rounded-lg border border-dashed inline-block">
+                    <img src={config.favicon_url} alt="Favicon" className="w-8 h-8 object-contain" />
+                    <p className="text-[10px] text-gray-400 mt-1 text-center">Vista previa</p>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/png,image/x-icon,image/svg+xml"
+                    onChange={handleFaviconUpload}
+                    disabled={uploadingFavicon}
+                    className="flex-1"
+                  />
+                  {uploadingFavicon && <span className="text-sm text-gray-500 animate-pulse">Subiendo...</span>}
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">Se recomienda una imagen cuadrada de 32x32px o 64x64px.</p>
+              </div>
             </div>
           </div>
 
-          <Button onClick={handleSaveConfig} disabled={loading} className="w-full">
+          <Button onClick={handleSaveConfig} disabled={loading} className="w-full mt-4">
             <Save className="w-4 h-4 mr-2" />
-            {loading ? 'Guardando...' : 'Guardar Configuración'}
+            {loading ? 'Guardando...' : 'Guardar Configuración General'}
           </Button>
         </CardContent>
       </Card>

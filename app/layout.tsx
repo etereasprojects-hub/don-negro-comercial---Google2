@@ -1,9 +1,11 @@
+
 import React from 'react';
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from '@/components/ui/toaster';
 import { CartProvider } from '@/lib/cart-context';
+import { supabase } from '@/lib/supabase';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -13,91 +15,64 @@ const inter = Inter({
   fallback: ['system-ui', 'arial'],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://www.donegro.com'),
-  title: {
-    default: 'Don Negro Comercial - Tu Comercial de Confianza en Paraguay',
-    template: '%s | Don Negro Comercial'
-  },
-  description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles, indumentaria deportiva and aire acondicionado en Asunción, Paraguay. Calidad garantizada and atención personalizada. Compra al contado o a crédito.',
-  icons: {
-    icon: [
-      { url: '/favicon.png', type: 'image/png' },
-      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon.png', sizes: '16x16', type: 'image/png' },
+export async function generateMetadata(): Promise<Metadata> {
+  const { data: config } = await supabase
+    .from('store_configuration')
+    .select('store_name, favicon_url')
+    .maybeSingle();
+
+  const title = config?.store_name || 'Don Negro Comercial';
+  const favicon = config?.favicon_url || null;
+
+  return {
+    metadataBase: new URL('https://www.donegro.com'),
+    title: {
+      default: `${title} - Tu Comercial de Confianza en Paraguay`,
+      template: `%s | ${title}`
+    },
+    description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles, indumentaria deportiva y aire acondicionado en Asunción, Paraguay.',
+    icons: favicon ? {
+      icon: favicon,
+      shortcut: favicon,
+      apple: favicon,
+    } : undefined,
+    keywords: [
+      'Don Negro Comercial',
+      'comercial Paraguay',
+      'electrónica Asunción',
+      'electrodomésticos Paraguay',
+      'muebles Asunción',
+      'aire acondicionado'
     ],
-    shortcut: '/favicon.png',
-    apple: [
-      { url: '/favicon.png', sizes: '180x180', type: 'image/png' },
-    ],
-  },
-  keywords: [
-    'Don Negro Comercial',
-    'comercial Paraguay',
-    'electrónica Asunción',
-    'electrodomésticos Paraguay',
-    'muebles Asunción',
-    'aire acondicionado',
-    'indumentaria deportiva',
-    'compra a crédito',
-    'lavarropas',
-    'heladeras',
-    'cocinas',
-    'televisores',
-    'notebooks'
-  ],
-  authors: [{ name: 'Don Negro Comercial' }],
-  creator: 'Don Negro Comercial',
-  publisher: 'Don Negro Comercial',
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  openGraph: {
-    type: 'website',
-    locale: 'es_PY',
-    url: 'https://www.donegro.com',
-    title: 'Don Negro Comercial - Tu Comercial de Confianza en Paraguay',
-    description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles and más en Paraguay. Compra al contado o a crédito.',
-    siteName: 'Don Negro Comercial',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Don Negro Comercial - Tu Comercial de Confianza',
-    description: 'Los mejores productos en electrónica, electrodomésticos and muebles en Paraguay.',
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+    authors: [{ name: title }],
+    creator: title,
+    publisher: title,
+    openGraph: {
+      type: 'website',
+      locale: 'es_PY',
+      url: 'https://www.donegro.com',
+      title: `${title} - Tu Comercial de Confianza en Paraguay`,
+      siteName: title,
+    },
+    robots: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
-  verification: {
-    google: 'google-site-verification-code',
-  },
-};
+    }
+  };
+}
 
 /**
  * RootLayout component for the application.
  */
-// Fixed: Children must be required in Next.js RootLayout components to satisfy the framework contract.
-// If this component is being invoked manually without children, the invocation should be updated.
+// Fix: Added Readonly to ensure correct prop typing for Next.js layout expectations and resolved 'children' missing error on nested components like CartProvider
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="es">
       <head>
-        <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
-        <link rel="apple-touch-icon" href="/favicon.png" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} crossOrigin="anonymous" />
         <link rel="preconnect" href="https://casa-americana.b-cdn.net" crossOrigin="anonymous" />
