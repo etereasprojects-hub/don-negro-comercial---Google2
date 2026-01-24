@@ -7,6 +7,9 @@ import { Toaster } from '@/components/ui/toaster';
 import { CartProvider } from '@/lib/cart-context';
 import { supabase } from '@/lib/supabase';
 
+// Forzamos a que el layout se revalide siempre para captar cambios en la base de datos (favicon/nombre)
+export const revalidate = 0;
+
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
@@ -31,11 +34,12 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${title}`
     },
     description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles, indumentaria deportiva y aire acondicionado en Asunción, Paraguay.',
-    icons: favicon ? {
-      icon: favicon,
-      shortcut: favicon,
-      apple: favicon,
-    } : undefined,
+    // Definimos explícitamente los iconos para sobrescribir cualquier default de Next.js o del navegador
+    icons: {
+      icon: favicon || '',
+      shortcut: favicon || '',
+      apple: favicon || '',
+    },
     keywords: [
       'Don Negro Comercial',
       'comercial Paraguay',
@@ -64,12 +68,12 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * RootLayout component for the application.
  */
-// Fix: Added Readonly to ensure correct prop typing for Next.js layout expectations and resolved 'children' missing error on nested components like CartProvider
+// Fixed: Simplified props definition to resolve TypeScript children inference issues
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="es">
       <head>
