@@ -1,4 +1,3 @@
-
 import React from 'react';
 import './globals.css';
 import type { Metadata } from 'next';
@@ -24,14 +23,18 @@ export async function generateMetadata(): Promise<Metadata> {
     .select('store_name, favicon_url')
     .maybeSingle();
 
-  const title = config?.store_name || 'Don Negro Comercial';
+  // Si no hay nombre en la base de datos, usamos 'Don Negro Comercial' por defecto
+  const storeName = config?.store_name || 'Don Negro Comercial';
   const favicon = config?.favicon_url || null;
+
+  // Texto exacto solicitado para la pestaña del navegador
+  const fullTitle = "Don Negro Comercial, electrodomésticos, electrónica, muebles, indumentaria deportiva y mucho mas.";
 
   return {
     metadataBase: new URL('https://www.donegro.com'),
     title: {
-      default: `${title} - Tu Comercial de Confianza en Paraguay`,
-      template: `%s | ${title}`
+      default: fullTitle,
+      template: `%s | ${storeName}`
     },
     description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles, indumentaria deportiva y aire acondicionado en Asunción, Paraguay.',
     // Definimos explícitamente los iconos para sobrescribir cualquier default de Next.js o del navegador
@@ -48,15 +51,15 @@ export async function generateMetadata(): Promise<Metadata> {
       'muebles Asunción',
       'aire acondicionado'
     ],
-    authors: [{ name: title }],
-    creator: title,
-    publisher: title,
+    authors: [{ name: storeName }],
+    creator: storeName,
+    publisher: storeName,
     openGraph: {
       type: 'website',
       locale: 'es_PY',
       url: 'https://www.donegro.com',
-      title: `${title} - Tu Comercial de Confianza en Paraguay`,
-      siteName: title,
+      title: fullTitle,
+      siteName: storeName,
     },
     robots: {
       index: true,
@@ -68,7 +71,6 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * RootLayout component for the application.
  */
-// Fixed: Simplified props definition to resolve TypeScript children inference issues
 export default function RootLayout({
   children,
 }: {
