@@ -40,15 +40,17 @@ export default function BulkEditModal({
   selectedProductIds,
   onSave,
 }: BulkEditModalProps) {
+  // Manejamos los números como strings para poder diferenciar entre "" (vacío/no editar) y "0" (valor cero)
   const [formData, setFormData] = useState({
     categoria: "",
-    margen_porcentaje: 0,
-    interes_6_meses_porcentaje: 0,
-    interes_12_meses_porcentaje: 0,
-    interes_15_meses_porcentaje: 0,
-    interes_18_meses_porcentaje: 0,
+    margen_porcentaje: "" as string | number,
+    interes_6_meses_porcentaje: "" as string | number,
+    interes_12_meses_porcentaje: "" as string | number,
+    interes_15_meses_porcentaje: "" as string | number,
+    interes_18_meses_porcentaje: "" as string | number,
     estado: "",
     destacado: false,
+    updateDestacado: false, // Nueva bandera para saber si queremos actualizar el checkbox
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -56,7 +58,7 @@ export default function BulkEditModal({
 
   useEffect(() => {
     loadCategories();
-    resetForm();
+    if (isOpen) resetForm();
   }, [isOpen]);
 
   const loadCategories = async () => {
@@ -74,17 +76,17 @@ export default function BulkEditModal({
   const resetForm = () => {
     setFormData({
       categoria: "",
-      margen_porcentaje: 0,
-      interes_6_meses_porcentaje: 0,
-      interes_12_meses_porcentaje: 0,
-      interes_15_meses_porcentaje: 0,
-      interes_18_meses_porcentaje: 0,
+      margen_porcentaje: "",
+      interes_6_meses_porcentaje: "",
+      interes_12_meses_porcentaje: "",
+      interes_15_meses_porcentaje: "",
+      interes_18_meses_porcentaje: "",
       estado: "",
       destacado: false,
+      updateDestacado: false,
     });
   };
 
-  // Fixed React namespace error by importing React
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -93,13 +95,28 @@ export default function BulkEditModal({
       const dataToUpdate: any = {};
 
       if (formData.categoria) dataToUpdate.categoria = formData.categoria;
-      if (formData.margen_porcentaje > 0) dataToUpdate.margen_porcentaje = Number(formData.margen_porcentaje);
-      if (formData.interes_6_meses_porcentaje > 0) dataToUpdate.interes_6_meses_porcentaje = Number(formData.interes_6_meses_porcentaje);
-      if (formData.interes_12_meses_porcentaje > 0) dataToUpdate.interes_12_meses_porcentaje = Number(formData.interes_12_meses_porcentaje);
-      if (formData.interes_15_meses_porcentaje > 0) dataToUpdate.interes_15_meses_porcentaje = Number(formData.interes_15_meses_porcentaje);
-      if (formData.interes_18_meses_porcentaje > 0) dataToUpdate.interes_18_meses_porcentaje = Number(formData.interes_18_meses_porcentaje);
       if (formData.estado) dataToUpdate.estado = formData.estado;
-      dataToUpdate.destacado = formData.destacado;
+      
+      // Solo actualizamos el campo si no está vacío. Esto permite que el '0' sea válido.
+      if (formData.margen_porcentaje !== "") {
+        dataToUpdate.margen_porcentaje = Number(formData.margen_porcentaje);
+      }
+      if (formData.interes_6_meses_porcentaje !== "") {
+        dataToUpdate.interes_6_meses_porcentaje = Number(formData.interes_6_meses_porcentaje);
+      }
+      if (formData.interes_12_meses_porcentaje !== "") {
+        dataToUpdate.interes_12_meses_porcentaje = Number(formData.interes_12_meses_porcentaje);
+      }
+      if (formData.interes_15_meses_porcentaje !== "") {
+        dataToUpdate.interes_15_meses_porcentaje = Number(formData.interes_15_meses_porcentaje);
+      }
+      if (formData.interes_18_meses_porcentaje !== "") {
+        dataToUpdate.interes_18_meses_porcentaje = Number(formData.interes_18_meses_porcentaje);
+      }
+      
+      if (formData.updateDestacado) {
+        dataToUpdate.destacado = formData.destacado;
+      }
 
       if (Object.keys(dataToUpdate).length === 0) {
         alert("Por favor, completa al menos un campo para actualizar");
@@ -137,7 +154,7 @@ export default function BulkEditModal({
           <DialogTitle>Editar Productos en Grupo</DialogTitle>
           <DialogDescription>
             Editando {selectedProductIds.size} producto{selectedProductIds.size > 1 ? "s" : ""}.
-            Los campos que dejes vacíos no se actualizarán.
+            Los campos que dejes vacíos no se actualizarán. Para desactivar una opción de crédito, escribe "0".
           </DialogDescription>
         </DialogHeader>
 
@@ -171,15 +188,15 @@ export default function BulkEditModal({
                   type="number"
                   step="0.01"
                   value={formData.margen_porcentaje}
-                  onChange={(e) => setFormData({ ...formData, margen_porcentaje: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, margen_porcentaje: e.target.value })}
                   placeholder="Ejemplo: 18"
                 />
-                <p className="text-xs text-gray-500 mt-1">Dejar en 0 para no modificar</p>
               </div>
             </div>
 
             <div className="border-t pt-4">
               <h3 className="font-semibold text-lg mb-3 text-gray-800">Intereses a Crédito (%)</h3>
+              <p className="text-xs text-blue-600 mb-4 font-medium">Nota: El valor "0" inhabilita la opción de cuotas para el cliente.</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="interes_6_meses_porcentaje">6 Meses (%)</Label>
@@ -188,7 +205,7 @@ export default function BulkEditModal({
                     type="number"
                     step="0.01"
                     value={formData.interes_6_meses_porcentaje}
-                    onChange={(e) => setFormData({ ...formData, interes_6_meses_porcentaje: Number(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, interes_6_meses_porcentaje: e.target.value })}
                     placeholder="Ejemplo: 45"
                   />
                 </div>
@@ -200,7 +217,7 @@ export default function BulkEditModal({
                     type="number"
                     step="0.01"
                     value={formData.interes_12_meses_porcentaje}
-                    onChange={(e) => setFormData({ ...formData, interes_12_meses_porcentaje: Number(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, interes_12_meses_porcentaje: e.target.value })}
                     placeholder="Ejemplo: 65"
                   />
                 </div>
@@ -212,7 +229,7 @@ export default function BulkEditModal({
                     type="number"
                     step="0.01"
                     value={formData.interes_15_meses_porcentaje}
-                    onChange={(e) => setFormData({ ...formData, interes_15_meses_porcentaje: Number(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, interes_15_meses_porcentaje: e.target.value })}
                     placeholder="Ejemplo: 75"
                   />
                 </div>
@@ -224,12 +241,11 @@ export default function BulkEditModal({
                     type="number"
                     step="0.01"
                     value={formData.interes_18_meses_porcentaje}
-                    onChange={(e) => setFormData({ ...formData, interes_18_meses_porcentaje: Number(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, interes_18_meses_porcentaje: e.target.value })}
                     placeholder="Ejemplo: 85"
                   />
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Dejar en 0 para no modificar</p>
             </div>
 
             <div className="border-t pt-4">
@@ -248,20 +264,30 @@ export default function BulkEditModal({
               </Select>
             </div>
 
-            <div className="border-t pt-4">
+            <div className="border-t pt-4 space-y-4">
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="destacado"
-                  checked={formData.destacado}
-                  onCheckedChange={(checked) => setFormData({ ...formData, destacado: checked })}
+                  id="updateDestacado"
+                  checked={formData.updateDestacado}
+                  onCheckedChange={(checked) => setFormData({ ...formData, updateDestacado: checked })}
                 />
-                <Label htmlFor="destacado" className="cursor-pointer">
-                  Marcar como Producto Destacado
+                <Label htmlFor="updateDestacado" className="font-bold text-blue-700">
+                  ¿Actualizar estado de "Destacado"?
                 </Label>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Los productos destacados aparecen en el carrusel de la página principal
-              </p>
+              
+              {formData.updateDestacado && (
+                <div className="flex items-center space-x-2 pl-6 animate-in fade-in slide-in-from-left-2">
+                  <Switch
+                    id="destacado"
+                    checked={formData.destacado}
+                    onCheckedChange={(checked) => setFormData({ ...formData, destacado: checked })}
+                  />
+                  <Label htmlFor="destacado" className="cursor-pointer">
+                    Marcar como Producto Destacado
+                  </Label>
+                </div>
+              )}
             </div>
           </div>
 
