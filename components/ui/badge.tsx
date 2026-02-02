@@ -23,18 +23,27 @@ const badgeVariants = cva(
   }
 );
 
-// Fixed BadgeProps by explicitly allowing className and using correct React namespace
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {
-  variant?: 'default' | 'secondary' | 'destructive' | 'outline';
-  className?: string;
-}
+    VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  );
-}
+/**
+ * Updated Badge component to use React.forwardRef.
+ * This ensures that standard React attributes like 'key' are correctly handled 
+ * by the TypeScript type system when the component is used in JSX, 
+ * especially within mapped lists.
+ */
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
+  ({ className, variant, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(badgeVariants({ variant }), className)}
+        {...props}
+      />
+    );
+  }
+);
+Badge.displayName = 'Badge';
 
 export { Badge, badgeVariants };
