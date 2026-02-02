@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-// Added Activity and Terminal to lucide-react imports to fix errors on lines 174, 196, and 213
 import { Search, Code, Server, Send, Package, Filter, AlertCircle, CheckCircle2, Info, Activity, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,30 +47,33 @@ export default function Operacion1Page() {
     setLoading(true);
     setResponse(null);
     
-    const payload = {
+    // El payload enviado al proxy no incluye cod/pas porque el proxy los inyecta,
+    // pero para la visualización del usuario los incluimos en el log.
+    const visualPayload = {
+      cod: "*******",
+      pas: "*******",
       ope: 1,
       ...filters
     };
     
-    setLastPayload(payload);
+    setLastPayload(visualPayload);
 
     try {
       const res = await fetch('/api/fastrax/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ ope: 1, ...filters })
       });
       
       const data = await res.json();
       setResponse(data);
-    } catch (error) {
-      setResponse({ estatus: 99, cestatus: "Error de conexión con el proxy" });
+    } catch (error: any) {
+      setResponse({ estatus: 99, cestatus: `Error local: ${error.message}` });
     } finally {
       setLoading(false);
     }
   };
 
-  // The first element is the status info, others are products
   const statusInfo = Array.isArray(response) ? response[0] : response?.estatus !== undefined ? response : null;
   const products = Array.isArray(response) ? response.slice(1) : [];
 
@@ -101,7 +103,6 @@ export default function Operacion1Page() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Search Panel */}
         <Card className="lg:col-span-1 bg-slate-900 border-slate-800 shadow-2xl">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2 text-white">
@@ -173,7 +174,7 @@ export default function Operacion1Page() {
               {loading ? (
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 animate-spin" /> 
-                  Sincronizando...
+                  Conectando...
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -185,7 +186,6 @@ export default function Operacion1Page() {
           </CardContent>
         </Card>
 
-        {/* Debugger & Status Panel */}
         <div className="lg:col-span-3 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="bg-slate-900 border-slate-800 shadow-xl overflow-hidden group">
@@ -199,7 +199,7 @@ export default function Operacion1Page() {
               <CardContent className="p-0">
                 <div className="bg-slate-950/50 p-4 min-h-[140px] max-h-[140px] overflow-auto custom-scrollbar">
                   <pre className="text-[10px] font-mono text-blue-300 leading-relaxed">
-                    {lastPayload ? JSON.stringify(lastPayload, null, 2) : "// Esperando ejecución de consulta..."}
+                    {lastPayload ? JSON.stringify(lastPayload, null, 2) : "// Esperando ejecución..."}
                   </pre>
                 </div>
               </CardContent>
@@ -216,20 +216,19 @@ export default function Operacion1Page() {
               <CardContent className="p-0">
                 <div className="bg-slate-950/50 p-4 min-h-[140px] max-h-[140px] overflow-auto custom-scrollbar">
                   <pre className="text-[10px] font-mono text-green-300 leading-relaxed">
-                    {response ? JSON.stringify(response, null, 2) : "// No hay datos recibidos..."}
+                    {response ? JSON.stringify(response, null, 2) : "// No hay datos..."}
                   </pre>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Status Banner */}
           {statusInfo && (
             <div className={`p-4 rounded-xl border flex items-start gap-4 shadow-lg transition-all ${
-              statusInfo.estatus === 0 ? 'bg-green-500/5 border-green-500/20 text-green-400' : 'bg-red-500/5 border-red-500/20 text-red-400'
+              statusInfo.estatus === 0 || statusInfo.estatus === "Ok" ? 'bg-green-500/5 border-green-500/20 text-green-400' : 'bg-red-500/5 border-red-500/20 text-red-400'
             }`}>
-              <div className={`p-2 rounded-lg ${statusInfo.estatus === 0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                {statusInfo.estatus === 0 ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+              <div className={`p-2 rounded-lg ${statusInfo.estatus === 0 || statusInfo.estatus === "Ok" ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                {statusInfo.estatus === 0 || statusInfo.estatus === "Ok" ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
@@ -241,20 +240,19 @@ export default function Operacion1Page() {
                 <div className="flex gap-4 mt-2 text-xs opacity-80">
                   <div className="flex items-center gap-1.5">
                     <Info className="w-3 h-3" />
-                    Elementos totales: {statusInfo.element}
+                    Elementos: {statusInfo.element || 0}
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Results Table */}
           {products.length > 0 && (
             <Card className="bg-slate-900 border-slate-800 overflow-hidden shadow-2xl">
               <CardHeader className="border-b border-slate-800 bg-slate-950/30 px-6 py-4">
                 <CardTitle className="flex items-center gap-2 text-white text-base">
                   <Package className="w-5 h-5 text-blue-500" />
-                  Resultados del Catálogo ({products.length})
+                  Resultados ({products.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -262,12 +260,11 @@ export default function Operacion1Page() {
                   <Table>
                     <TableHeader className="bg-slate-950/80 sticky top-0 z-10">
                       <TableRow className="border-slate-800 hover:bg-transparent">
-                        <TableHead className="text-slate-500 font-bold uppercase text-[10px] tracking-wider w-[120px]">SKU_ID</TableHead>
-                        <TableHead className="text-slate-500 font-bold uppercase text-[10px] tracking-wider">Estado_Fastrax</TableHead>
-                        <TableHead className="text-slate-500 font-bold uppercase text-[10px] tracking-wider">Saldo_Total</TableHead>
-                        <TableHead className="text-slate-500 font-bold uppercase text-[10px] tracking-wider">Distribución_Tiendas</TableHead>
-                        <TableHead className="text-slate-500 font-bold uppercase text-[10px] tracking-wider">Variantes</TableHead>
-                        <TableHead className="text-slate-500 font-bold uppercase text-[10px] tracking-wider text-right">CRC_CHECK</TableHead>
+                        <TableHead className="text-slate-500 font-bold uppercase text-[10px] tracking-wider w-[120px]">SKU</TableHead>
+                        <TableHead className="text-slate-500 font-bold uppercase text-[10px] tracking-wider">Estado</TableHead>
+                        <TableHead className="text-slate-500 font-bold uppercase text-[10px] tracking-wider">Saldo</TableHead>
+                        <TableHead className="text-slate-500 font-bold uppercase text-[10px] tracking-wider">Distribución</TableHead>
+                        <TableHead className="text-slate-500 font-bold uppercase text-[10px] tracking-wider text-right">CRC</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -282,50 +279,24 @@ export default function Operacion1Page() {
                               </div>
                             </TableCell>
                             <TableCell className="font-bold text-white text-base">
-                              {p.sal} <span className="text-[10px] text-slate-500 font-normal">unid.</span>
+                              {p.sal} <span className="text-[10px] text-slate-500 font-normal">u.</span>
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-wrap gap-2">
                                 {p.slj?.map((store: any, idx: number) => {
                                   const storeId = Object.keys(store)[0];
                                   const stock = store[storeId];
-                                  const storeName = storeId === "1" ? "CDE" : storeId === "3" ? "ASU" : `Loja ${storeId}`;
+                                  const storeName = storeId === "1" ? "CDE" : storeId === "3" ? "ASU" : `L${storeId}`;
                                   return (
-                                    <Badge key={idx} variant="outline" className="bg-slate-800/50 border-slate-700 text-slate-300 text-[10px] py-0.5 px-2">
+                                    <Badge key={idx} variant="outline" className="bg-slate-800/50 border-slate-700 text-slate-300 text-[10px]">
                                       {storeName}: <span className="text-white ml-1 font-bold">{stock}</span>
                                     </Badge>
                                   );
                                 })}
                               </div>
                             </TableCell>
-                            <TableCell>
-                              {p.grd?.length > 0 ? (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button className="text-blue-500 hover:text-blue-400 text-xs underline underline-offset-4 decoration-blue-500/30">
-                                        {p.grd.length} Variantes
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="bg-slate-950 border-slate-800 text-white p-3 max-w-[300px] shadow-2xl">
-                                      <div className="space-y-1">
-                                        <p className="text-[10px] font-bold text-slate-500 uppercase mb-2 border-b border-slate-800 pb-1">Desglose de variantes</p>
-                                        {p.grd.map((g: any, gi: number) => (
-                                          <div key={gi} className="flex justify-between gap-4 text-[11px] font-mono border-b border-slate-800/50 py-1 last:border-0">
-                                            <span>{g[0]} {g[1]} | {g[2]} {g[3]}</span>
-                                            <span className="text-blue-400 font-bold">{g[4]}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              ) : (
-                                <span className="text-slate-600 text-xs italic">S/V</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right font-mono text-[10px] text-slate-600 group-hover:text-slate-400 transition-colors uppercase">
-                              {p.crc || "0x0000"}
+                            <TableCell className="text-right font-mono text-[10px] text-slate-600">
+                              {p.crc || "0x0"}
                             </TableCell>
                           </TableRow>
                         );
@@ -338,13 +309,10 @@ export default function Operacion1Page() {
           )}
 
           {products.length === 0 && !loading && response && (
-            <div className="text-center py-24 bg-slate-900/30 rounded-3xl border border-dashed border-slate-800 flex flex-col items-center">
-              <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-6">
-                <Package className="w-8 h-8 text-slate-600" />
-              </div>
-              <h3 className="text-slate-400 font-bold text-lg tracking-tight">SIN_RESULTADOS_FASTAX</h3>
-              <p className="text-slate-600 text-sm mt-1 max-w-xs mx-auto">No hay registros que coincidan con los parámetros enviados. Intenta realizar una consulta global.</p>
-              <Button variant="link" className="text-blue-500 mt-4 text-xs uppercase font-bold" onClick={() => setFilters({sku: "", blo: "T", mar: "", cat: "", gru: ""})}>Resetear Filtros</Button>
+            <div className="text-center py-20 bg-slate-900/30 rounded-3xl border border-dashed border-slate-800 flex flex-col items-center">
+              <AlertCircle className="w-10 h-10 text-slate-700 mb-4" />
+              <h3 className="text-slate-400 font-bold">SIN DATOS</h3>
+              <p className="text-slate-600 text-xs mt-1">La consulta no devolvió productos.</p>
             </div>
           )}
         </div>
