@@ -22,12 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 export default function Operacion1Page() {
   const [loading, setLoading] = useState(false);
@@ -47,11 +41,10 @@ export default function Operacion1Page() {
     setLoading(true);
     setResponse(null);
     
-    // El payload enviado al proxy no incluye cod/pas porque el proxy los inyecta,
-    // pero para la visualización del usuario los incluimos en el log.
+    // El payload que mostramos (el proxy inyecta las credenciales reales)
     const visualPayload = {
-      cod: "*******",
-      pas: "*******",
+      cod: "42352",
+      pas: "*****************",
       ope: 1,
       ...filters
     };
@@ -74,11 +67,14 @@ export default function Operacion1Page() {
     }
   };
 
-  const statusInfo = Array.isArray(response) ? response[0] : response?.estatus !== undefined ? response : null;
-  const products = Array.isArray(response) ? response.slice(1) : [];
+  // Procesamiento seguro de la respuesta
+  const isArrayResponse = Array.isArray(response);
+  const statusInfo = isArrayResponse ? response[0] : response?.estatus !== undefined ? response : null;
+  const products = isArrayResponse ? response.slice(1) : [];
 
-  const getStatusLabel = (sta: number) => {
-    switch (sta) {
+  const getStatusLabel = (sta: any) => {
+    const s = Number(sta);
+    switch (s) {
       case 0: return { label: "OK / Con Saldo", class: "bg-green-500/20 text-green-400 border-green-500/30" };
       case 1: return { label: "Sin Saldo", class: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
       case 2: return { label: "Bloqueado", class: "bg-red-500/20 text-red-400 border-red-500/30" };
@@ -225,10 +221,12 @@ export default function Operacion1Page() {
 
           {statusInfo && (
             <div className={`p-4 rounded-xl border flex items-start gap-4 shadow-lg transition-all ${
-              statusInfo.estatus === 0 || statusInfo.estatus === "Ok" ? 'bg-green-500/5 border-green-500/20 text-green-400' : 'bg-red-500/5 border-red-500/20 text-red-400'
+              (statusInfo.estatus === 0 || statusInfo.estatus === "Ok" || statusInfo.estatus === "0") 
+                ? 'bg-green-500/5 border-green-500/20 text-green-400' 
+                : 'bg-red-500/5 border-red-500/20 text-red-400'
             }`}>
-              <div className={`p-2 rounded-lg ${statusInfo.estatus === 0 || statusInfo.estatus === "Ok" ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                {statusInfo.estatus === 0 || statusInfo.estatus === "Ok" ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+              <div className={`p-2 rounded-lg ${(statusInfo.estatus === 0 || statusInfo.estatus === "Ok" || statusInfo.estatus === "0") ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                {(statusInfo.estatus === 0 || statusInfo.estatus === "Ok" || statusInfo.estatus === "0") ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
@@ -247,7 +245,7 @@ export default function Operacion1Page() {
             </div>
           )}
 
-          {products.length > 0 && (
+          {products.length > 0 && Array.isArray(products) && (
             <Card className="bg-slate-900 border-slate-800 overflow-hidden shadow-2xl">
               <CardHeader className="border-b border-slate-800 bg-slate-950/30 px-6 py-4">
                 <CardTitle className="flex items-center gap-2 text-white text-base">
@@ -283,16 +281,20 @@ export default function Operacion1Page() {
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-wrap gap-2">
-                                {p.slj?.map((store: any, idx: number) => {
-                                  const storeId = Object.keys(store)[0];
-                                  const stock = store[storeId];
-                                  const storeName = storeId === "1" ? "CDE" : storeId === "3" ? "ASU" : `L${storeId}`;
-                                  return (
-                                    <Badge key={idx} variant="outline" className="bg-slate-800/50 border-slate-700 text-slate-300 text-[10px]">
-                                      {storeName}: <span className="text-white ml-1 font-bold">{stock}</span>
-                                    </Badge>
-                                  );
-                                })}
+                                {Array.isArray(p.slj) ? (
+                                  p.slj.map((store: any, idx: number) => {
+                                    const storeId = Object.keys(store)[0];
+                                    const stock = store[storeId];
+                                    const storeName = storeId === "1" ? "CDE" : storeId === "3" ? "ASU" : `L${storeId}`;
+                                    return (
+                                      <Badge key={idx} variant="outline" className="bg-slate-800/50 border-slate-700 text-slate-300 text-[10px]">
+                                        {storeName}: <span className="text-white ml-1 font-bold">{stock}</span>
+                                      </Badge>
+                                    );
+                                  })
+                                ) : (
+                                  <span className="text-slate-600 text-[10px]">No disponible</span>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell className="text-right font-mono text-[10px] text-slate-600">
@@ -308,11 +310,13 @@ export default function Operacion1Page() {
             </Card>
           )}
 
-          {products.length === 0 && !loading && response && (
+          {(!isArrayResponse || products.length === 0) && !loading && response && (
             <div className="text-center py-20 bg-slate-900/30 rounded-3xl border border-dashed border-slate-800 flex flex-col items-center">
               <AlertCircle className="w-10 h-10 text-slate-700 mb-4" />
               <h3 className="text-slate-400 font-bold">SIN DATOS</h3>
-              <p className="text-slate-600 text-xs mt-1">La consulta no devolvió productos.</p>
+              <p className="text-slate-600 text-xs mt-1">
+                {isArrayResponse ? "La consulta no devolvió productos." : "Error en el formato de respuesta de la API."}
+              </p>
             </div>
           )}
         </div>
