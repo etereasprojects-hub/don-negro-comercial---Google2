@@ -5,7 +5,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { ope, ...params } = body;
 
-    // Credenciales fijas de prueba según documentación
+    // Fixed test credentials according to documentation provided
     const cod = "42352";
     const pas = "spW]<t&^(+-3Ha=FsfsE-aH4=?ut_1";
 
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     formData.append('pas', pas);
     formData.append('ope', ope.toString());
 
-    // Agregar parámetros opcionales si existen
+    // Add optional parameters if they exist
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
         formData.append(key, value.toString());
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-      throw new Error(`Error en API Fastrax: ${response.statusText}`);
+      throw new Error(`Fastrax API Error: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     console.error("Fastrax Proxy Error:", error);
     return NextResponse.json({ 
       estatus: 99, 
-      cestatus: error.message || "Error interno del servidor" 
+      cestatus: error.message || "Internal server error" 
     }, { status: 500 });
   }
 }
