@@ -80,6 +80,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        <meta name="facebook-domain-verification" content="bz0q3hnjr2j6cdkgzf8xk48si1i9e3" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} crossOrigin="anonymous" />
         <link rel="preconnect" href="https://casa-americana.b-cdn.net" crossOrigin="anonymous" />
