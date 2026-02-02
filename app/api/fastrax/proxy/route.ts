@@ -6,9 +6,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { ope, ...params } = body;
 
-    // Credenciales según el ejemplo PHP proporcionado
-    const cod = "1234567";
-    const pas = "J876B3442pP3452";
+    // Credenciales reales proporcionadas por el usuario
+    const cod = "42352";
+    const pas = "spW]<t&^(+-3Ha=FsfsE-aH4=?ut_1";
     const url = 'https://sisfxapi.fastrax.com.py:60253/MarketPlace/estatus.php';
 
     const formData = new URLSearchParams();
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     formData.append('pas', pas);
     formData.append('ope', ope.toString());
 
-    // Añadir parámetros opcionales
+    // Añadir parámetros opcionales del cuerpo de la petición
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
         formData.append(key, value.toString());
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          // Replaced Buffer.byteLength with TextEncoder to resolve the 'Cannot find name Buffer' TypeScript error
+          // Calculamos el byteLength de forma agnóstica al entorno
           'Content-Length': new TextEncoder().encode(postData).length
         },
         rejectUnauthorized: false // Equivalente a CURLOPT_SSL_VERIFYPEER => FALSE
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
         });
         res.on('end', () => {
           try {
+            // Fastrax devuelve el JSON como string
             resolve(JSON.parse(data));
           } catch (e) {
             resolve({ estatus: 99, cestatus: "Error parsing JSON response", raw: data });
