@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google';
 import { Toaster } from '@/components/ui/toaster';
 import { CartProvider } from '@/lib/cart-context';
 import { supabase } from '@/lib/supabase';
+import Script from 'next/script';
 
 // Forzamos a que el layout se revalide siempre para captar cambios en la base de datos (favicon/nombre)
 export const revalidate = 0;
@@ -90,8 +91,48 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://tiendamovil.com.py" />
         <link rel="dns-prefetch" href="https://www.gonzalezgimenez.com.py" />
         <link rel="dns-prefetch" href="https://casa-americana.b-cdn.net" />
+
+        {/* Google tag (gtag.js) */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-CGD8JDQF1B"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-CGD8JDQF1B');
+          `}
+        </Script>
+
+        {/* Meta Pixel Code */}
+        <Script id="meta-pixel" strategy="afterInteractive">
+          {`
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '1149486770440852');
+            fbq('track', 'PageView');
+          `}
+        </Script>
       </head>
       <body className={inter.className}>
+        <noscript>
+          <img
+            height="1"
+            width="1"
+            style={{ display: 'none' }}
+            src="https://www.facebook.com/tr?id=1149486770440852&ev=PageView&noscript=1"
+            alt=""
+          />
+        </noscript>
         <CartProvider>
           {children}
           <Toaster />
