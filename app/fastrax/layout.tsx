@@ -12,7 +12,7 @@ const operations = [
   { id: 4, name: "Consulta por página", path: "operacion-4-consulta-paginada" },
   { id: 10, name: "Versión de la API", path: "operacion-10-version" },
   { id: 11, name: "Saldo y precio", path: "operacion-11-saldo-precio" },
-  { id: 12, name: "Enviar pedido", path: "operacion-12-enviar-pedido" },
+  { id: 12, name: "Enviar pedido", path: "operacion-12-parametros-para-enviar-pedido" },
   { id: 13, name: "Consultar pedido", path: "operacion-13-consultar-pedido" },
   { id: 15, name: "Facturar pedido", path: "operacion-15-facturar-pedido" },
   { id: 16, name: "Borrar pedido", path: "operacion-16-borrar-pedido" },
@@ -104,10 +104,6 @@ export default function FastraxLayout({ children }: { children: React.ReactNode 
               <Activity className="w-3 h-3 text-green-500 animate-pulse" />
               API Integration: <span className="text-emerald-400 font-bold uppercase">Healthy</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500 ml-auto">
-               <Zap className="w-3 h-3 text-yellow-500" />
-               Latency: 24ms
-            </div>
           </div>
         </header>
         <div className="flex-1 p-8 overflow-y-auto">
@@ -117,7 +113,6 @@ export default function FastraxLayout({ children }: { children: React.ReactNode 
         </div>
       </main>
 
-      {/* Comment: Replaced styled-jsx with standard style tag and dangerouslySetInnerHTML to fix TypeScript error 'Property jsx does not exist on type DetailedHTMLProps' */}
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
