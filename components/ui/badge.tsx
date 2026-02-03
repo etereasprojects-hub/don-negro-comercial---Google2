@@ -25,7 +25,10 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+    VariantProps<typeof badgeVariants> {
+  // Comment: Explicitly adding variant to BadgeProps to resolve TypeScript errors where 'variant' property is reported as missing from BadgeProps.
+  variant?: 'default' | 'secondary' | 'destructive' | 'outline' | null;
+}
 
 /**
  * Updated Badge component to use React.forwardRef.
