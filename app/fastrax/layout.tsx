@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Package, ChevronRight, Activity, Terminal, LayoutDashboard, Database, Zap } from 'lucide-react';
+import { Package, ChevronRight, Activity, Terminal, LayoutDashboard, Database, Zap, Search } from 'lucide-react';
 
 const operations = [
   { id: 1, name: "Consulta de productos", path: "operacion-1-consulta-productos" },
@@ -24,6 +24,10 @@ const operations = [
   { id: 94, name: "Imágenes Base64", path: "operacion-94-imagenes-base64" },
   { id: 98, name: "Saldos y activos", path: "operacion-98-saldos-activos" },
   { id: 99, name: "Productos alterados", path: "operacion-99-alterados" },
+];
+
+const tools = [
+  { id: "T1", name: "Explorador de Productos", path: "herramienta-consulta-productos", icon: Search },
 ];
 
 export default function FastraxLayout({ children }: { children: React.ReactNode }) {
@@ -55,7 +59,31 @@ export default function FastraxLayout({ children }: { children: React.ReactNode 
           </Link>
 
           <div className="h-4" />
-          <p className="text-[10px] font-bold text-slate-600 uppercase px-3 mb-2">Operaciones Disponibles</p>
+          <p className="text-[10px] font-bold text-slate-600 uppercase px-3 mb-2">Herramientas Especiales</p>
+          {tools.map((tool) => {
+             const isActive = pathname.includes(tool.path);
+             const Icon = tool.icon;
+             return (
+               <Link
+                key={tool.id}
+                href={`/fastrax/${tool.path}`}
+                className={`flex items-center justify-between p-3 rounded-lg group transition-all text-sm border ${
+                  isActive 
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' 
+                    : 'text-slate-400 hover:bg-slate-900 border-transparent hover:border-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-emerald-500'}`} />
+                  <span className={isActive ? 'font-bold' : ''}>{tool.name}</span>
+                </div>
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+             )
+          })}
+
+          <div className="h-4" />
+          <p className="text-[10px] font-bold text-slate-600 uppercase px-3 mb-2">Operaciones Estándar</p>
 
           {operations.map((op) => {
             const isActive = pathname.includes(op.path);
