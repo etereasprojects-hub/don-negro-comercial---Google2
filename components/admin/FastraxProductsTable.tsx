@@ -19,7 +19,8 @@ import {
   Layers,
   ChevronLeft,
   ChevronRight,
-  UploadCloud
+  UploadCloud,
+  Eye
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductModal from "./ProductModal";
@@ -62,6 +63,16 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
 
     if (!error) setDbProducts(data || []);
     setDbLoading(false);
+  };
+
+  const decodeFastraxText = (text: string) => {
+    if (!text) return "";
+    try {
+      // Reemplaza '+' por espacios antes de decodificar el componente URI
+      return decodeURIComponent(text.replace(/\+/g, ' '));
+    } catch (e) {
+      return text.replace(/\+/g, ' ');
+    }
   };
 
   // Paso 1: Obtener todos los SKUs disponibles
@@ -126,8 +137,8 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
         const images = Array.isArray(d3) ? d3[1]?.base64 || [] : [];
 
         loadedBatch.push({
-          nombre: decodeURIComponent(details.nom || "Sin Nombre"),
-          descripcion: decodeURIComponent(details.bre || ""),
+          nombre: decodeFastraxText(details.nom || "Sin Nombre"),
+          descripcion: decodeFastraxText(details.des || details.bre || ""),
           codigo_ext: item.sku,
           costo: Number(details.pre),
           stock: Number(item.sal),
@@ -183,10 +194,15 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
 
   const filtered = (view === "database" ? dbProducts : stagingProducts).filter(p => 
     p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.codigo_ext.includes(searchTerm)
+    (p.codigo_ext && p.codigo_ext.includes(searchTerm))
   );
 
   const totalPages = Math.ceil(apiSkus.length / itemsPerPage);
+
+  const openProductModal = (product: any) => {
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
 
   return (
     <div className="space-y-4">
@@ -355,14 +371,27 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
                     </Badge>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {view === "database" ? (
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => { setSelectedProduct(product); setIsModalOpen(true); }} className="h-9 w-9 p-0 hover:bg-blue-50 text-blue-600"><Edit className="w-4 h-4" /></Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(product.id)} className="h-9 w-9 p-0 hover:bg-red-50 text-red-600"><Trash2 className="w-4 h-4" /></Button>
-                      </div>
-                    ) : (
-                      <Badge className="bg-slate-100 text-slate-400 font-black text-[9px] uppercase border-slate-200">Previsualización</Badge>
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                       <Button 
+                         variant="ghost" 
+                         size="sm" 
+                         onClick={() => openProductModal(product)}
+                         className="h-9 w-9 p-0 hover:bg-blue-50 text-blue-600"
+                         title="Ver detalles completos"
+                       >
+                         {view === 'database' ? <Edit className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                       </Button>
+                       {view === 'database' && (
+                         <Button 
+                           variant="ghost" 
+                           size="sm" 
+                           onClick={() => handleDelete(product.id)} 
+                           className="h-9 w-9 p-0 hover:bg-red-50 text-red-600"
+                         >
+                           <Trash2 className="w-4 h-4" />
+                         </Button>
+                       )}
+                    </div>
                   </td>
                 </tr>
               ))}

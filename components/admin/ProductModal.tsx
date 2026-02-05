@@ -26,7 +26,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 
 interface Product {
-  id: string;
+  id?: string;
   nombre: string;
   descripcion: string;
   codigo_wos: string;
@@ -175,32 +175,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
         .maybeSingle();
 
       if (!error && data) {
-        const imagenesExtra = Array.isArray(data.imagenes_extra) ? data.imagenes_extra : [];
-        const paddedImages = [...imagenesExtra, "", "", "", "", ""].slice(0, 5);
-
-        setFormData({
-          nombre: data.nombre || "",
-          descripcion: data.descripcion || "",
-          codigo_wos: data.codigo_wos || "",
-          codigo_pro: data.codigo_pro || "",
-          codigo_ext: data.codigo_ext || "",
-          categoria: data.categoria || "",
-          url_slug: data.url_slug || "",
-          costo: data.costo != null ? Number(data.costo) : 0,
-          margen_porcentaje: data.margen_porcentaje != null ? Number(data.margen_porcentaje) : 18,
-          interes_6_meses_porcentaje: data.interes_6_meses_porcentaje != null ? Number(data.interes_6_meses_porcentaje) : 45,
-          interes_12_meses_porcentaje: data.interes_12_meses_porcentaje != null ? Number(data.interes_12_meses_porcentaje) : 65,
-          interes_15_meses_porcentaje: data.interes_15_meses_porcentaje != null ? Number(data.interes_15_meses_porcentaje) : 75,
-          interes_18_meses_porcentaje: data.interes_18_meses_porcentaje != null ? Number(data.interes_18_meses_porcentaje) : 85,
-          stock: data.stock != null ? Number(data.stock) : 0,
-          ubicacion: data.ubicacion || "En Local",
-          estado: data.estado || "Activo",
-          imagen_url: data.imagen_url || "",
-          imagenes_extra: paddedImages,
-          video_url: data.video_url || "",
-          destacado: Boolean(data.destacado),
-          show_in_hero: Boolean(data.show_in_hero),
-        });
+        applyProductToForm(data);
       } else {
         console.error("Error loading product data:", error);
       }
@@ -209,11 +184,47 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
     }
   };
 
+  const applyProductToForm = (data: any) => {
+    const imagenesExtra = Array.isArray(data.imagenes_extra) ? data.imagenes_extra : [];
+    const paddedImages = [...imagenesExtra, "", "", "", "", ""].slice(0, 5);
+
+    setFormData({
+      nombre: data.nombre || "",
+      descripcion: data.descripcion || "",
+      codigo_wos: data.codigo_wos || "",
+      codigo_pro: data.codigo_pro || "",
+      codigo_ext: data.codigo_ext || "",
+      categoria: data.categoria || "",
+      url_slug: data.url_slug || "",
+      costo: data.costo != null ? Number(data.costo) : 0,
+      margen_porcentaje: data.margen_porcentaje != null ? Number(data.margen_porcentaje) : 18,
+      interes_6_meses_porcentaje: data.interes_6_meses_porcentaje != null ? Number(data.interes_6_meses_porcentaje) : 45,
+      interes_12_meses_porcentaje: data.interes_12_meses_porcentaje != null ? Number(data.interes_12_meses_porcentaje) : 65,
+      interes_15_meses_porcentaje: data.interes_15_meses_porcentaje != null ? Number(data.interes_15_meses_porcentaje) : 75,
+      interes_18_meses_porcentaje: data.interes_18_meses_porcentaje != null ? Number(data.interes_18_meses_porcentaje) : 85,
+      stock: data.stock != null ? Number(data.stock) : 0,
+      ubicacion: data.ubicacion || "En Local",
+      estado: data.estado || "Activo",
+      imagen_url: data.imagen_url || "",
+      imagenes_extra: paddedImages,
+      video_url: data.video_url || "",
+      destacado: Boolean(data.destacado),
+      show_in_hero: Boolean(data.show_in_hero),
+    });
+  };
+
   useEffect(() => {
     if (isOpen) {
-      if (product && product.id) {
-        loadProductData(product.id);
+      if (product) {
+        if (product.id) {
+          // Es un producto de la base de datos
+          loadProductData(product.id);
+        } else {
+          // Es un producto de previsualización (staging)
+          applyProductToForm(product);
+        }
       } else {
+        // Reset para nuevo producto
         setFormData({
           nombre: "",
           descripcion: "",
@@ -250,7 +261,6 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
     });
   };
 
-  // Fixed React namespace error by importing React
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -272,24 +282,17 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
         imagenes_extra: imagenesExtraFiltered,
       };
 
-      if (product) {
+      if (product && product.id) {
         const { error } = await supabase
           .from("products")
           .update({ ...dataToSave, updated_at: new Date().toISOString() })
           .eq("id", product.id);
 
-        if (error) {
-          console.error("Database error:", error);
-          throw error;
-        }
+        if (error) throw error;
         alert("Producto actualizado exitosamente");
       } else {
         const { error } = await supabase.from("products").insert([dataToSave]);
-
-        if (error) {
-          console.error("Database error:", error);
-          throw error;
-        }
+        if (error) throw error;
         alert("Producto creado exitosamente");
       }
 
@@ -297,7 +300,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
       onClose();
     } catch (error) {
       console.error("Error saving product:", error);
-      alert("Error al guardar el producto. Por favor, verifica los datos e intenta de nuevo.");
+      alert("Error al guardar el producto.");
     } finally {
       setLoading(false);
     }
@@ -317,12 +320,14 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {product ? "Editar Producto" : "Nuevo Producto"}
+            {product?.id ? "Editar Producto" : product ? "Previsualizar Importación" : "Nuevo Producto"}
           </DialogTitle>
           <DialogDescription>
-            {product
-              ? "Modifica la información del producto"
-              : "Completa los datos del nuevo producto"}
+            {product?.id
+              ? "Modifica la información del producto guardado."
+              : product 
+              ? "Revise como se verá el producto antes de persistirlo en la base de datos."
+              : "Completa los datos del nuevo producto."}
           </DialogDescription>
         </DialogHeader>
 
@@ -354,9 +359,6 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                 onChange={(e) => setFormData({ ...formData, url_slug: e.target.value })}
                 placeholder="se-genera-automaticamente"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                URL completa: {process.env.NEXT_PUBLIC_SITE_URL || 'tu-sitio.com'}/productos/{formData.url_slug || 'slug'}
-              </p>
             </div>
 
             <div className="col-span-2">
@@ -379,16 +381,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
             </div>
 
             <div>
-              <Label htmlFor="codigo_pro">Código PRO</Label>
-              <Input
-                id="codigo_pro"
-                value={formData.codigo_pro}
-                onChange={(e) => setFormData({ ...formData, codigo_pro: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="codigo_ext">Código EXT</Label>
+              <Label htmlFor="codigo_ext">SKU / Código EXT</Label>
               <Input
                 id="codigo_ext"
                 value={formData.codigo_ext}
@@ -421,7 +414,6 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                   variant="outline"
                   size="icon"
                   onClick={() => setShowCategoryModal(true)}
-                  title="Agregar nueva categoría"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -454,60 +446,12 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
               />
             </div>
 
-            <div className="col-span-2">
-              <h3 className="font-semibold text-lg mb-3 text-gray-800 border-b pb-2">Intereses a Crédito (%)</h3>
-            </div>
-
-            <div>
-              <Label htmlFor="interes_6_meses_porcentaje">6 Meses (%)</Label>
-              <Input
-                id="interes_6_meses_porcentaje"
-                type="number"
-                step="0.01"
-                value={formData.interes_6_meses_porcentaje}
-                onChange={(e) => setFormData({ ...formData, interes_6_meses_porcentaje: Number(e.target.value) })}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="interes_12_meses_porcentaje">12 Meses (%)</Label>
-              <Input
-                id="interes_12_meses_porcentaje"
-                type="number"
-                step="0.01"
-                value={formData.interes_12_meses_porcentaje}
-                onChange={(e) => setFormData({ ...formData, interes_12_meses_porcentaje: Number(e.target.value) })}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="interes_15_meses_porcentaje">15 Meses (%)</Label>
-              <Input
-                id="interes_15_meses_porcentaje"
-                type="number"
-                step="0.01"
-                value={formData.interes_15_meses_porcentaje}
-                onChange={(e) => setFormData({ ...formData, interes_15_meses_porcentaje: Number(e.target.value) })}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="interes_18_meses_porcentaje">18 Meses (%)</Label>
-              <Input
-                id="interes_18_meses_porcentaje"
-                type="number"
-                step="0.01"
-                value={formData.interes_18_meses_porcentaje}
-                onChange={(e) => setFormData({ ...formData, interes_18_meses_porcentaje: Number(e.target.value) })}
-              />
-            </div>
-
             {formData.costo > 0 && (
               <div className="col-span-2">
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="pt-6">
                     <h4 className="font-semibold text-lg mb-3 text-blue-900">Precios Calculados</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
                       <div>
                         <p className="text-gray-600">Precio Contado</p>
                         <p className="font-bold text-blue-900">{formatCurrency(calculatedPrices.precioContado)}</p>
@@ -515,44 +459,35 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                       {calculatedPrices.disponible6Meses && (
                         <div>
                           <p className="text-gray-600">6 Meses</p>
-                          <p className="font-bold text-blue-900">{formatCurrency(calculatedPrices.cuota6Meses)} x 6</p>
-                          <p className="text-xs text-gray-500">Total: {formatCurrency(calculatedPrices.total6Meses)}</p>
+                          <p className="font-bold text-blue-900">{formatCurrency(calculatedPrices.cuota6Meses)}</p>
                         </div>
                       )}
                       {calculatedPrices.disponible12Meses && (
                         <div>
                           <p className="text-gray-600">12 Meses</p>
-                          <p className="font-bold text-blue-900">{formatCurrency(calculatedPrices.cuota12Meses)} x 12</p>
-                          <p className="text-xs text-gray-500">Total: {formatCurrency(calculatedPrices.total12Meses)}</p>
+                          <p className="font-bold text-blue-900">{formatCurrency(calculatedPrices.cuota12Meses)}</p>
                         </div>
                       )}
                       {calculatedPrices.disponible15Meses && (
                         <div>
                           <p className="text-gray-600">15 Meses</p>
-                          <p className="font-bold text-blue-900">{formatCurrency(calculatedPrices.cuota15Meses)} x 15</p>
-                          <p className="text-xs text-gray-500">Total: {formatCurrency(calculatedPrices.total15Meses)}</p>
+                          <p className="font-bold text-blue-900">{formatCurrency(calculatedPrices.cuota15Meses)}</p>
                         </div>
                       )}
                       {calculatedPrices.disponible18Meses && (
                         <div>
                           <p className="text-gray-600">18 Meses</p>
-                          <p className="font-bold text-blue-900">{formatCurrency(calculatedPrices.cuota18Meses)} x 18</p>
-                          <p className="text-xs text-gray-500">Total: {formatCurrency(calculatedPrices.total18Meses)}</p>
+                          <p className="font-bold text-blue-900">{formatCurrency(calculatedPrices.cuota18Meses)}</p>
                         </div>
                       )}
                     </div>
-                    {!calculatedPrices.disponible6Meses && !calculatedPrices.disponible12Meses && !calculatedPrices.disponible15Meses && !calculatedPrices.disponible18Meses && (
-                      <p className="text-sm text-gray-600 mt-3">
-                        No hay opciones de financiamiento disponibles. Configura al menos un plan con interés mayor a 0%.
-                      </p>
-                    )}
                   </CardContent>
                 </Card>
               </div>
             )}
 
             <div>
-              <Label htmlFor="stock">Stock</Label>
+              <Label htmlFor="stock">Stock Actual</Label>
               <Input
                 id="stock"
                 type="number"
@@ -563,35 +498,11 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
 
             <div>
               <Label htmlFor="ubicacion">Ubicación</Label>
-              <Select
+              <Input
+                id="ubicacion"
                 value={formData.ubicacion}
-                onValueChange={(value) => setFormData({ ...formData, ubicacion: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="En Local">En Local</SelectItem>
-                  <SelectItem value="Depósito">Depósito</SelectItem>
-                  <SelectItem value="Show Room">Show Room</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="estado">Estado</Label>
-              <Select
-                value={formData.estado}
-                onValueChange={(value) => setFormData({ ...formData, estado: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Activo">Activo</SelectItem>
-                  <SelectItem value="Inactivo">Inactivo</SelectItem>
-                </SelectContent>
-              </Select>
+                onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
+              />
             </div>
 
             <div className="col-span-2">
@@ -600,135 +511,31 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                 id="imagen_url"
                 value={formData.imagen_url}
                 onChange={(e) => setFormData({ ...formData, imagen_url: e.target.value })}
-                placeholder="https://ejemplo.com/imagen.jpg"
               />
             </div>
-
-            <div className="col-span-2">
-              <h3 className="font-semibold text-lg mb-3 text-gray-800 border-b pb-2">Imágenes Adicionales (Máximo 5)</h3>
-              <div className="space-y-2">
-                {formData.imagenes_extra.map((img, index) => (
-                  <div key={index}>
-                    <Label htmlFor={`imagen_extra_${index}`}>Imagen Extra {index + 1}</Label>
-                    <Input
-                      id={`imagen_extra_${index}`}
-                      value={img}
-                      onChange={(e) => {
-                        const newImages = [...formData.imagenes_extra];
-                        newImages[index] = e.target.value;
-                        setFormData({ ...formData, imagenes_extra: newImages });
-                      }}
-                      placeholder={`https://ejemplo.com/imagen${index + 1}.jpg`}
-                    />
-                  </div>
-                ))}
+            
+            {formData.imagen_url && (
+              <div className="col-span-2 flex justify-center p-4 bg-slate-50 rounded-xl border border-dashed">
+                <img src={formData.imagen_url} alt="Preview" className="h-48 object-contain" />
               </div>
-            </div>
-
-            <div className="col-span-2">
-              <Label htmlFor="video_url">URL de Video (YouTube)</Label>
-              <Input
-                id="video_url"
-                value={formData.video_url}
-                onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Ingresa una URL de YouTube. El video aparecerá en la galería del producto.
-              </p>
-            </div>
-
-            <div className="col-span-2">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="destacado"
-                  checked={formData.destacado}
-                  onCheckedChange={(checked) => setFormData({ ...formData, destacado: checked })}
-                />
-                <Label htmlFor="destacado" className="cursor-pointer">
-                  Producto Destacado (aparece en grilla de destacados)
-                </Label>
-              </div>
-            </div>
-
-            <div className="col-span-2">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="show_in_hero"
-                  checked={formData.show_in_hero}
-                  onCheckedChange={(checked) => setFormData({ ...formData, show_in_hero: checked })}
-                />
-                <Label htmlFor="show_in_hero" className="cursor-pointer">
-                  Mostrar en sección Hero (aparece en slider principal)
-                </Label>
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancelar
+              Cerrar
             </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {loading ? "Guardando..." : product ? "Actualizar" : "Crear Producto"}
-            </Button>
+            {(!product || product.id) && (
+              <Button
+                type="submit"
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {loading ? "Guardando..." : product?.id ? "Actualizar" : "Crear Producto"}
+              </Button>
+            )}
           </div>
         </form>
-        )}
-
-        {showCategoryModal && (
-          <Dialog open={showCategoryModal} onOpenChange={setShowCategoryModal}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Agregar Nueva Categoría</DialogTitle>
-                <DialogDescription>
-                  Ingresa el nombre de la nueva categoría. Se creará automáticamente un slug basado en el nombre.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <Label htmlFor="newCategoryName">Nombre de la Categoría *</Label>
-                  <Input
-                    id="newCategoryName"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    placeholder="Ej: Electrónica"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleCreateCategory();
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowCategoryModal(false);
-                    setNewCategoryName("");
-                  }}
-                  disabled={savingCategory}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleCreateCategory}
-                  disabled={savingCategory || !newCategoryName.trim()}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {savingCategory ? "Guardando..." : "Crear Categoría"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
         )}
       </DialogContent>
     </Dialog>

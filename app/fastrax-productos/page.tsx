@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -67,11 +67,12 @@ export default function FastraxProductosPage() {
         <FastraxProductsTable onLogUpdate={(s, r) => setLogs({ sent: s, received: r })} />
       </div>
       
-      <style jsx global>{`
+      {/* Fix: Replaced style jsx global with dangerouslySetInnerHTML to resolve TypeScript error in App Router */}
+      <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-      `}</style>
+      ` }} />
     </div>
   );
 }
