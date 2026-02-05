@@ -16,7 +16,7 @@ import RelatedProducts from "@/components/RelatedProducts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Package, Star, ArrowLeft, Check } from "lucide-react";
+import { ShoppingCart, Package, Star, ArrowLeft, Check, ListChecks } from "lucide-react";
 import Link from "next/link";
 
 interface Product {
@@ -38,6 +38,7 @@ interface Product {
   codigo_wos: string;
   codigo_pro: string;
   destacado: boolean;
+  source: string;
 }
 
 export default function ProductPage() {
@@ -120,6 +121,9 @@ export default function ProductPage() {
     interes_18_meses_porcentaje: Number(product.interes_18_meses_porcentaje ?? 85),
   });
 
+  // Comprobar si la descripción es HTML (común en productos Fastrax)
+  const isHtmlDescription = product.descripcion?.includes('<table') || product.descripcion?.includes('<div');
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -154,15 +158,34 @@ export default function ProductPage() {
           <div className="space-y-6">
             <div>
               <h1 className="text-4xl font-bold text-[#2E3A52] mb-2">{product.nombre}</h1>
-              {product.categoria && (
-                <Badge variant="secondary" className="text-sm">
-                  {product.categoria}
-                </Badge>
-              )}
+              <div className="flex gap-2 items-center">
+                {product.categoria && (
+                  <Badge variant="secondary" className="text-sm">
+                    {product.categoria}
+                  </Badge>
+                )}
+                {product.source === 'Fastrax' && (
+                  <Badge variant="outline" className="text-[10px] border-blue-200 text-blue-600 bg-blue-50 font-bold uppercase">
+                    Importado Fastrax
+                  </Badge>
+                )}
+              </div>
             </div>
 
             {product.descripcion && (
-              <p className="text-gray-700 text-lg leading-relaxed">{product.descripcion}</p>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-slate-400 uppercase text-[10px] font-black tracking-widest">
+                   <ListChecks className="w-4 h-4" /> Especificaciones del producto
+                </div>
+                {isHtmlDescription ? (
+                  <div 
+                    className="product-description-html"
+                    dangerouslySetInnerHTML={{ __html: product.descripcion }}
+                  />
+                ) : (
+                  <p className="text-gray-700 text-lg leading-relaxed whitespace-pre-wrap">{product.descripcion}</p>
+                )}
+              </div>
             )}
 
             {/* Stock */}

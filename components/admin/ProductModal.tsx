@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Plus, LayoutGrid, Eye } from "lucide-react";
 
 interface Product {
   id?: string;
@@ -361,14 +361,30 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
               />
             </div>
 
-            <div className="col-span-2">
-              <Label htmlFor="descripcion">Descripción</Label>
+            <div className="col-span-2 space-y-4">
+              <Label htmlFor="descripcion">Descripción / Ficha Técnica</Label>
               <Textarea
                 id="descripcion"
                 value={formData.descripcion}
                 onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                rows={3}
+                rows={6}
+                className="font-mono text-xs"
               />
+              
+              {/* Vista Previa del HTML (para Fastrax) */}
+              {(formData.descripcion.includes('<table') || formData.descripcion.includes('<div')) && (
+                <div className="p-4 bg-slate-50 border border-dashed rounded-xl space-y-2">
+                   <div className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                      <Eye className="w-3 h-3" /> Vista Previa de Diseño (Renderizado)
+                   </div>
+                   <div className="bg-white border rounded-lg p-4 overflow-auto max-h-[300px]">
+                      <div 
+                        className="product-description-html"
+                        dangerouslySetInnerHTML={{ __html: formData.descripcion }}
+                      />
+                   </div>
+                </div>
+              )}
             </div>
 
             <div>
