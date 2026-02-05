@@ -68,7 +68,6 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
   const decodeFastraxText = (text: string) => {
     if (!text) return "";
     try {
-      // Reemplaza '+' por espacios antes de decodificar el componente URI
       return decodeURIComponent(text.replace(/\+/g, ' '));
     } catch (e) {
       return text.replace(/\+/g, ' ');
@@ -118,7 +117,6 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
         const item = batch[i];
         setSyncProgress(20 + ((i / batch.length) * 60));
 
-        // 1. OPE 2
         const res2 = await fetch('/api/fastrax/proxy', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -127,7 +125,6 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
         const d2 = await res2.json();
         const details = d2[1];
 
-        // 2. OPE 94
         const res3 = await fetch('/api/fastrax/proxy', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -151,17 +148,22 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
       setStagingProducts(loadedBatch);
       setSyncProgress(100);
     } catch (e) {
-      alert("Error cargando detalles del batch");
+      alert("Error cargando detalles del lote");
     } finally {
       setTimeout(() => setIsSyncing(false), 500);
     }
   };
 
-  // Paso 3: Guardar en Base de Datos
+  // Paso 3: Guardar en Base de Datos (Corregido con validación de error)
   const commitToDb = async () => {
     setIsSyncing(true);
+    setSyncProgress(0);
     try {
+      let count = 0;
       for (const prod of stagingProducts) {
+        count++;
+        setSyncProgress((count / stagingProducts.length) * 100);
+        
         const slug = prod.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_') + "_" + prod.codigo_ext;
         const finalProd = {
           ...prod,
@@ -171,18 +173,28 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
           interes_12_meses_porcentaje: 65,
           interes_15_meses_porcentaje: 75,
           interes_18_meses_porcentaje: 85,
-          ubicacion: "Fastrax Almacén"
+          ubicacion: "Fastrax Almacén",
+          active: true // Aseguramos compatibilidad con el campo booleano
         };
 
-        await supabase.from("products").upsert(finalProd, { onConflict: 'codigo_ext' });
+        const { error } = await supabase
+          .from("products")
+          .upsert(finalProd, { onConflict: 'codigo_ext' });
+
+        if (error) {
+          console.error("Database Error:", error);
+          throw new Error(`Fallo en SKU ${prod.codigo_ext}: ${error.message}`);
+        }
       }
-      alert("Lote guardado exitosamente en la base de datos.");
+      
+      alert("Lote guardado correctamente en la base de datos.");
       loadDbProducts();
       setView("database");
-    } catch (e) {
-      alert("Error al guardar en DB");
+    } catch (e: any) {
+      alert("ERROR AL GUARDAR: " + e.message + "\n\nVerifique si aplicó el SQL de limpieza de duplicados.");
     } finally {
       setIsSyncing(false);
+      setSyncProgress(0);
     }
   };
 
