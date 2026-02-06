@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase";
 import { calculatePrices, formatCurrency } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// Comment: Added Card, CardContent, and Label imports to fix missing component errors
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { 
@@ -42,6 +41,12 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
   const [dbProducts, setDbProducts] = useState<any[]>([]);
   const [dbLoading, setDbLoading] = useState(true);
   
+  // Comment: Added missing states to resolve multiple "Cannot find name" errors.
+  const [view, setView] = useState<"database" | "staging">("database");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+
   // Import State (Productos del API)
   const [apiSkus, setApiSkus] = useState<any[]>([]);
   const [stagingProducts, setStagingProducts] = useState<any[]>([]);
@@ -57,12 +62,6 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
   const [currentBatchNum, setCurrentBatchNum] = useState(0);
   const [totalBatchesNum, setTotalBatchesNum] = useState(0);
   const [autoSyncErrors, setAutoSyncErrors] = useState<any[]>([]);
-
-  // UI State
-  const [searchTerm, setSearchTerm] = useState("");
-  const [view, setView] = useState<"database" | "staging">("database");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   useEffect(() => {
     loadDbProducts();
@@ -111,7 +110,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
       }
       return [];
     } catch (error) {
-      console.error(error);
+      console.error("Fetch SKUs Error:", error);
       return [];
     } finally {
       setIsSyncing(false);
@@ -139,6 +138,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
       else setSyncProgress(20 + ((i / batch.length) * 60));
 
       try {
+        // Op 2: Detalles
         const res2 = await fetch('/api/fastrax/proxy', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -148,10 +148,11 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
         const details = Array.isArray(d2) ? d2[1] : null;
 
         if (!details) {
-            setAutoSyncErrors(prev => [...prev, { sku: item.sku, error: "Detalles no encontrados" }]);
+            setAutoSyncErrors(prev => [...prev, { sku: item.sku, error: "Detalles no encontrados en Servidor" }]);
             continue;
         }
 
+        // Op 94: Imágenes
         const res3 = await fetch('/api/fastrax/proxy', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -160,6 +161,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
         const d3 = await res3.json();
         const images = Array.isArray(d3) && d3[1] ? d3[1].base64 || [] : [];
 
+        // Ubicación y Stock
         const stores = Array.isArray(item.slj) ? item.slj : [];
         let finalLocation = "Almacén";
         let branchId = "";
@@ -189,7 +191,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
           estado: "Activo"
         });
       } catch (err: any) {
-        setAutoSyncErrors(prev => [...prev, { sku: item.sku, error: err.message }]);
+        setAutoSyncErrors(prev => [...prev, { sku: item.sku, error: err.message || "Error desconocido" }]);
       }
     }
     return loadedBatch;
@@ -197,8 +199,9 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
 
   const commitToDb = async (batchToCommit: any[]) => {
     if (batchToCommit.length === 0) return;
-    try {
-      for (const prod of batchToCommit) {
+    
+    for (const prod of batchToCommit) {
+      try {
         const slug = prod.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_') + "_" + prod.codigo_ext;
         const finalProd = {
           ...prod,
@@ -210,14 +213,17 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
           interes_18_meses_porcentaje: 85,
           active: true
         };
+
         const { error } = await supabase
           .from("products")
           .upsert(finalProd, { onConflict: 'codigo_ext' });
-        if (error) throw error;
+
+        if (error) {
+           setAutoSyncErrors(prev => [...prev, { sku: prod.codigo_ext, error: "Database: " + error.message }]);
+        }
+      } catch (e: any) {
+        setAutoSyncErrors(prev => [...prev, { sku: prod.codigo_ext, error: "Runtime: " + e.message }]);
       }
-    } catch (e: any) {
-      console.error("Database Error:", e);
-      throw e;
     }
   };
 
@@ -235,57 +241,61 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
     }
   };
 
-  // FULL AUTO SYNC LOGIC
+  // FULL AUTO SYNC LOGIC - OPTIMIZED
   const handleFullAutoSync = async () => {
     if (isAutoSyncing) return;
     
     setIsAutoSyncing(true);
     setAutoSyncErrors([]);
-    setAutoSyncOverallProgress(0);
+    setAutoSyncOverallProgress(1); // Muestra que empezó
     setAutoSyncBatchProgress(0);
 
+    // 1. Aseguramos tener los SKUs
     let skus = apiSkus;
     if (skus.length === 0) {
+      onLogUpdate(null, "Iniciando descarga de lista maestra...");
       skus = await fetchSkus();
     }
 
-    if (skus.length === 0) {
-      alert("No se pudieron obtener los productos de Fastrax.");
+    if (!skus || skus.length === 0) {
+      alert("No se pudieron obtener productos de la API. Verifique conexión y logs.");
       setIsAutoSyncing(false);
       return;
     }
 
+    // 2. Calculamos lotes
     const totalBatches = Math.ceil(skus.length / itemsPerPage);
     setTotalBatchesNum(totalBatches);
+    console.log(`Iniciando procesamiento de ${skus.length} productos en ${totalBatches} lotes.`);
 
+    // 3. Loop de procesamiento
     for (let b = 0; b < totalBatches; b++) {
-      if (!isAutoSyncing) break; // Allow stopping logic (simple check)
-      
       setCurrentBatchNum(b + 1);
+      setAutoSyncBatchProgress(0);
+      
       const start = b * itemsPerPage;
       const end = start + itemsPerPage;
       const batchSkus = skus.slice(start, end);
 
-      // Process batch with sub-progress
+      // Procesar el lote de 20 (detalles e imágenes)
       const loadedProducts = await processBatch(batchSkus, (current, total) => {
          setAutoSyncBatchProgress((current / total) * 100);
       });
 
-      // Commit to DB
-      try {
-        await commitToDb(loadedProducts);
-      } catch (err) {
-        setAutoSyncErrors(prev => [...prev, { sku: `Batch ${b+1}`, error: "Fallo masivo al guardar lote" }]);
-      }
+      // Guardar en Supabase (producto por producto para no detener el lote si uno falla)
+      await commitToDb(loadedProducts);
 
-      setAutoSyncOverallProgress(((b + 1) / totalBatches) * 100);
+      // Actualizar progreso global
+      const progress = ((b + 1) / totalBatches) * 100;
+      setAutoSyncOverallProgress(progress);
     }
 
     setIsAutoSyncing(false);
     loadDbProducts();
-    alert("Proceso de sincronización total finalizado.");
+    alert("Sincronización Total Finalizada. Revise el log si hubo fallos menores.");
   };
 
+  // Comment: Fixed references to state variables below.
   const filtered = (view === "database" ? dbProducts : stagingProducts).filter(p => 
     p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
     (p.codigo_ext && p.codigo_ext.toString().includes(searchTerm))
@@ -325,7 +335,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
               >
                 {isAutoSyncing ? (
                    <div className="flex items-center gap-3">
-                      <Loader2 className="animate-spin w-5 h-5" /> PROCESANDO TODO...
+                      <Loader2 className="animate-spin w-5 h-5" /> PROCESANDO...
                    </div>
                 ) : (
                   <div className="flex items-center gap-3">
@@ -335,7 +345,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
               </Button>
            </div>
 
-           {isAutoSyncing && (
+           {(isAutoSyncing || autoSyncOverallProgress > 0) && (
              <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-top-2 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                    <div className="space-y-3">
@@ -357,12 +367,12 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
                 {autoSyncErrors.length > 0 && (
                   <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
                      <div className="flex items-center gap-2 text-red-500 font-black text-[10px] uppercase mb-2 tracking-widest">
-                        <FileX className="w-4 h-4" /> Log de Fallos Detectados ({autoSyncErrors.length})
+                        <FileX className="w-4 h-4" /> Log de Fallos en Importación ({autoSyncErrors.length})
                      </div>
-                     <div className="max-h-[100px] overflow-y-auto space-y-1 custom-scrollbar pr-2">
+                     <div className="max-h-[150px] overflow-y-auto space-y-1 custom-scrollbar pr-2">
                         {autoSyncErrors.map((err, i) => (
-                           <div key={i} className="text-[10px] font-mono text-red-400 flex justify-between bg-red-950/20 px-2 py-1 rounded">
-                              <span>SKU: {err.sku}</span>
+                           <div key={i} className="text-[10px] font-mono text-red-400 flex justify-between bg-red-950/20 px-2 py-1 rounded border border-red-900/20">
+                              <span className="font-bold">ITEM {err.sku}:</span>
                               <span className="opacity-70">{err.error}</span>
                            </div>
                         ))}
@@ -433,7 +443,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
         </div>
       </div>
 
-      {isSyncing && (
+      {isSyncing && !isAutoSyncing && (
         <div className="space-y-1">
           <Progress value={syncProgress} className="h-1.5 bg-slate-200" />
           <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest text-center">Procesando integración... {Math.round(syncProgress)}%</p>
