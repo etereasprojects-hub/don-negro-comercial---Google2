@@ -16,18 +16,20 @@ import FloatingButtons from "@/components/FloatingButtons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { 
   ShoppingCart, 
   Package, 
   Search, 
   Filter, 
-  X, 
   ChevronDown, 
   ChevronUp, 
   Clock,
-  LayoutGrid,
   MapPin,
-  Tag
+  Tag,
+  DollarSign,
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -37,6 +39,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Product {
   id: string;
@@ -60,12 +63,16 @@ function ProductsContent() {
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadProgress, setLoadProgress] = useState(0);
+  
+  // States para Filtros
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedLocation, setSelectedLocation] = useState<string>("all");
-  const [priceRange, setPriceRange] = useState<string>("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedDeliveries, setSelectedDeliveries] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState<[number, number] | null>(null);
+  
   const [categories, setCategories] = useState<string[]>([]);
-  const [locations, setLocations] = useState<string[]>([]);
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
   const { addItem } = useCart();
 
@@ -77,50 +84,79 @@ function ProductsContent() {
 
   useEffect(() => {
     filterProducts();
-  }, [products, searchTerm, selectedCategory, selectedLocation, priceRange]);
+  }, [products, searchTerm, selectedCategories, selectedDeliveries, priceRange]);
 
   const loadProducts = async () => {
+    setLoading(true);
+    setLoadProgress(20);
+    
+    // Simulación de progreso de carga
+    const interval = setInterval(() => {
+      setLoadProgress(prev => (prev < 90 ? prev + 10 : prev));
+    }, 200);
+
     const { data, error } = await supabase
       .from("products")
       .select("*")
       .eq("estado", "Activo")
       .order("nombre");
 
+    clearInterval(interval);
+    setLoadProgress(100);
+
     if (!error) {
       setProducts(data || []);
       const cats = Array.from(new Set(data?.map((p) => p.categoria).filter(Boolean)));
-      const locs = Array.from(new Set(data?.map((p) => p.ubicacion).filter(Boolean)));
       setCategories(cats as string[]);
-      setLocations(locs as string[]);
     }
+    
+    setTimeout(() => setLoading(false), 500);
   };
 
   const filterProducts = () => {
     let filtered = [...products];
+    
     if (searchTerm) {
       filtered = filtered.filter(p => 
         p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
         p.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(p => p.categoria === selectedCategory);
+    
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(p => selectedCategories.includes(p.categoria));
     }
-    if (selectedLocation !== "all") {
-      filtered = filtered.filter(p => p.ubicacion === selectedLocation);
+
+    if (selectedDeliveries.length > 0) {
+      filtered = filtered.filter(p => {
+        const is24 = p.ubicacion?.includes('Asunción');
+        const is48 = p.ubicacion?.includes('CDE') || p.ubicacion?.includes('Almacén');
+        if (selectedDeliveries.includes('24') && is24) return true;
+        if (selectedDeliveries.includes('48') && is48) return true;
+        return false;
+      });
     }
     
-    // Filtro de precio simple si es necesario
-    if (priceRange !== "all") {
-      const [min, max] = priceRange.split('-').map(Number);
+    if (priceRange) {
       filtered = filtered.filter(p => {
         const price = calculatePrices(p).precioContado;
-        if (max) return price >= min && price <= max;
-        return price >= min;
+        return price >= priceRange[0] && price <= priceRange[1];
       });
     }
 
     setFilteredProducts(filtered);
+  };
+
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
+
+  const toggleDelivery = (time: string) => {
+    setSelectedDeliveries(prev => 
+      prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time]
+    );
   };
 
   const handleAddToCart = (product: Product) => {
@@ -141,54 +177,138 @@ function ProductsContent() {
   };
 
   const FiltersContent = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-black uppercase tracking-widest text-[#2E3A52] mb-4 flex items-center gap-2">
-          <Tag className="w-4 h-4 text-[#D91E7A]" /> Categorías
-        </h3>
-        <div className="space-y-2">
-          <button
-            onClick={() => setSelectedCategory("all")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === 'all' ? 'bg-[#D91E7A] text-white font-bold' : 'hover:bg-gray-100 text-gray-600'}`}
-          >
-            Todas las categorías
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === cat ? 'bg-[#D91E7A] text-white font-bold' : 'hover:bg-gray-100 text-gray-600'}`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="space-y-4">
+      <Accordion type="multiple" className="w-full">
+        {/* Filtro Categorías */}
+        <AccordionItem value="categories" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-3 px-1">
+            <div className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-[#2E3A52]">
+              <Tag className="w-4 h-4 text-[#D91E7A]" /> Categorías
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2 pt-2">
+              {categories.map((cat) => (
+                <div key={cat} className="flex items-center space-x-3 p-1">
+                  <Checkbox 
+                    id={`cat-${cat}`} 
+                    checked={selectedCategories.includes(cat)}
+                    onCheckedChange={() => toggleCategory(cat)}
+                  />
+                  <label htmlFor={`cat-${cat}`} className="text-sm font-medium leading-none cursor-pointer text-slate-600">
+                    {cat}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      <div>
-        <h3 className="text-sm font-black uppercase tracking-widest text-[#2E3A52] mb-4 flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-[#D91E7A]" /> Ubicación
-        </h3>
-        <div className="space-y-2">
-          <button
-            onClick={() => setSelectedLocation("all")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedLocation === 'all' ? 'bg-[#6B4199] text-white font-bold' : 'hover:bg-gray-100 text-gray-600'}`}
-          >
-            Cualquier ubicación
-          </button>
-          {locations.map((loc) => (
-            <button
-              key={loc}
-              onClick={() => setSelectedLocation(loc)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedLocation === loc ? 'bg-[#6B4199] text-white font-bold' : 'hover:bg-gray-100 text-gray-600'}`}
-            >
-              {loc}
-            </button>
-          ))}
-        </div>
+        {/* Filtro Tiempo de Entrega */}
+        <AccordionItem value="delivery" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-3 px-1">
+            <div className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-[#2E3A52]">
+              <Clock className="w-4 h-4 text-[#6B4199]" /> Tiempo de Entrega
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center space-x-3 p-1">
+                <Checkbox 
+                  id="del-24" 
+                  checked={selectedDeliveries.includes('24')}
+                  onCheckedChange={() => toggleDelivery('24')}
+                />
+                <label htmlFor="del-24" className="text-sm font-medium leading-none cursor-pointer text-slate-600">
+                  Entrega en 24 hs
+                </label>
+              </div>
+              <div className="flex items-center space-x-3 p-1">
+                <Checkbox 
+                  id="del-48" 
+                  checked={selectedDeliveries.includes('48')}
+                  onCheckedChange={() => toggleDelivery('48')}
+                />
+                <label htmlFor="del-48" className="text-sm font-medium leading-none cursor-pointer text-slate-600">
+                  Entrega en 48 hs
+                </label>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Filtro Rango de Precio */}
+        <AccordionItem value="price" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-3 px-1">
+            <div className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-[#2E3A52]">
+              <DollarSign className="w-4 h-4 text-emerald-600" /> Rango de Precio
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2 pt-2">
+              {[
+                { label: 'Hasta 1.000.000 ₲', val: [0, 1000000] },
+                { label: '1.000.000 ₲ a 5.000.000 ₲', val: [1000000, 5000000] },
+                { label: 'Más de 5.000.000 ₲', val: [5000000, 999999999] },
+              ].map((range, i) => (
+                <div key={i} className="flex items-center space-x-3 p-1">
+                   <button 
+                    onClick={() => setPriceRange(range.val as [number, number])}
+                    className={`text-xs p-2 rounded-lg border w-full text-left transition-all ${priceRange?.[0] === range.val[0] ? 'bg-slate-900 text-white font-bold' : 'hover:bg-slate-50'}`}
+                   >
+                     {range.label}
+                   </button>
+                </div>
+              ))}
+              {priceRange && (
+                <Button variant="ghost" size="sm" onClick={() => setPriceRange(null)} className="w-full text-[10px] uppercase font-bold text-red-500">
+                  Limpiar precio
+                </Button>
+              )}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+      
+      <div className="pt-4 border-t">
+        <Button 
+          variant="outline" 
+          className="w-full text-[10px] font-black uppercase tracking-widest h-10 border-slate-200"
+          onClick={() => {
+            setSelectedCategories([]);
+            setSelectedDeliveries([]);
+            setPriceRange(null);
+            setSearchTerm("");
+          }}
+        >
+          Limpiar Todos los Filtros
+        </Button>
       </div>
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center space-y-6">
+        <div className="max-w-md mx-auto space-y-4">
+          <div className="flex justify-center">
+            <div className="relative">
+              <Loader2 className="w-16 h-16 text-[#D91E7A] animate-spin" />
+              <Package className="w-6 h-6 text-slate-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            </div>
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-slate-800 uppercase italic tracking-tighter">Consultando nuestro inventario...</h3>
+            <p className="text-sm text-slate-500 font-medium">Estamos buscando las mejores opciones para ti.</p>
+          </div>
+          <div className="space-y-2">
+            <Progress value={loadProgress} className="h-2 bg-slate-100" />
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{loadProgress}% completado</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -196,7 +316,7 @@ function ProductsContent() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
         <div className="space-y-1">
           <h1 className="text-4xl font-black text-[#2E3A52] tracking-tighter uppercase italic">Nuestro Catálogo</h1>
-          <p className="text-gray-500 font-medium">Mostrando {filteredProducts.length} productos disponibles</p>
+          <p className="text-gray-500 font-medium italic">Explora {filteredProducts.length} productos disponibles ahora mismo</p>
         </div>
 
         <div className="relative w-full md:w-96 group">
@@ -222,13 +342,13 @@ function ProductsContent() {
         <div className="lg:hidden mb-6">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" className="w-full h-12 rounded-xl gap-2 font-bold border-2">
-                <Filter size={18} /> Filtrar Catálogo
+              <Button variant="outline" className="w-full h-12 rounded-xl gap-2 font-black border-2 border-slate-200 uppercase tracking-widest text-xs">
+                <Filter size={18} className="text-[#D91E7A]" /> Filtrar Catálogo
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px]">
+            <SheetContent side="left" className="w-[300px] overflow-y-auto">
               <SheetHeader className="mb-6">
-                <SheetTitle className="text-left font-black uppercase italic">Filtros</SheetTitle>
+                <SheetTitle className="text-left font-black uppercase italic tracking-tighter">Personalizar Búsqueda</SheetTitle>
               </SheetHeader>
               <FiltersContent />
             </SheetContent>
@@ -251,9 +371,9 @@ function ProductsContent() {
 
                 return (
                   <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 border-2 border-gray-100 hover:border-[#D91E7A] relative overflow-hidden flex flex-col h-full rounded-3xl">
-                    {product.source === 'Fastrax' && (
+                    {(product.ubicacion?.includes('Asunción') || product.ubicacion?.includes('CDE') || product.ubicacion?.includes('Almacén')) && (
                       <div className="absolute top-3 left-3 z-10">
-                        <Badge className={`${product.ubicacion?.includes('Asunción') ? 'bg-blue-600' : 'bg-orange-600'} text-[8px] sm:text-[9px] px-2 py-1 font-black uppercase tracking-tighter flex items-center gap-1 shadow-lg`}>
+                        <Badge className={`${product.ubicacion?.includes('Asunción') ? 'bg-blue-600' : 'bg-orange-600'} text-[8px] sm:text-[9px] px-2 py-1 font-black uppercase tracking-tighter flex items-center gap-1 shadow-lg border-none`}>
                           <Clock className="w-3 h-3" />
                           {product.ubicacion?.includes('Asunción') ? "Entrega 24 hs" : "Entrega 48 hs"}
                         </Badge>
@@ -333,12 +453,12 @@ function ProductsContent() {
                 );
               })
             ) : (
-              <div className="col-span-full py-20 text-center">
-                <Package className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-400 uppercase tracking-tighter">No encontramos productos</h3>
-                <p className="text-gray-500">Intenta cambiando los filtros o la búsqueda.</p>
-                <Button variant="link" onClick={() => { setSearchTerm(""); setSelectedCategory("all"); setSelectedLocation("all"); }} className="mt-4 text-[#D91E7A] font-bold">
-                  Limpiar filtros
+              <div className="col-span-full py-20 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
+                <Package className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-slate-400 uppercase tracking-tighter">No encontramos resultados</h3>
+                <p className="text-slate-500 italic">Intenta con otros filtros o términos de búsqueda.</p>
+                <Button variant="link" onClick={() => { setSearchTerm(""); setSelectedCategories([]); setSelectedDeliveries([]); setPriceRange(null); }} className="mt-4 text-[#D91E7A] font-bold uppercase text-xs tracking-widest">
+                  Ver todo el catálogo
                 </Button>
               </div>
             )}
@@ -358,7 +478,7 @@ export default function ProductsPage() {
         <Suspense fallback={
           <div className="container mx-auto px-4 py-20 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D91E7A] mx-auto mb-4"></div>
-            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Cargando Catálogo...</p>
+            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs italic">Cargando Catálogo...</p>
           </div>
         }>
           <ProductsContent />

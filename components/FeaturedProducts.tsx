@@ -79,7 +79,7 @@ export default function FeaturedProducts() {
               Productos Destacados
             </span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">Los mejores productos seleccionados para ti</p>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">Seleccionamos lo mejor de nuestro inventario para ti</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 max-w-7xl mx-auto">
@@ -96,55 +96,54 @@ export default function FeaturedProducts() {
 
             return (
               <div key={product.id}>
-                <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 sm:border-4 border-green-500 hover:border-green-600 relative overflow-visible">
-                  <Badge className="absolute -top-2 sm:-top-3 -right-2 sm:-right-3 bg-green-500 hover:bg-green-600 text-white px-1.5 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-semibold shadow-lg z-10 flex items-center gap-1">
+                <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 sm:border-4 border-emerald-500 hover:border-emerald-600 relative overflow-visible rounded-3xl">
+                  <Badge className="absolute -top-2 sm:-top-3 -right-2 sm:-right-3 bg-emerald-500 hover:bg-emerald-600 text-white px-1.5 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-black shadow-lg z-10 flex items-center gap-1 uppercase border-none">
                     <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-white" />
-                    <span className="hidden sm:inline">Destacado</span>
+                    <span className="hidden sm:inline">Top Choice</span>
                   </Badge>
 
-                  {product.source === 'Fastrax' && (
+                  {(product.ubicacion?.includes('Asunción') || product.ubicacion?.includes('CDE') || product.ubicacion?.includes('Almacén')) && (
                     <div className="absolute top-2 left-2 z-10">
-                      <Badge className={`${product.ubicacion?.includes('Asunción') ? 'bg-blue-600' : 'bg-orange-600'} text-[8px] sm:text-[10px] px-2 font-black uppercase tracking-tighter flex items-center gap-1`}>
+                      <Badge className={`${product.ubicacion?.includes('Asunción') ? 'bg-blue-600' : 'bg-orange-600'} text-[8px] sm:text-[10px] px-2 font-black uppercase tracking-tighter flex items-center gap-1 border-none shadow-md`}>
                         <Clock className="w-3 h-3" />
-                        {product.ubicacion?.includes('Asunción') ? "Entrega en 24 hs" : "Entrega en 48 hs"}
+                        {product.ubicacion?.includes('Asunción') ? "24 hs" : "48 hs"}
                       </Badge>
                     </div>
                   )}
 
                   <CardContent className="p-2 sm:p-4">
-                    <Link href={`/${product.url_slug}`} target="_blank">
-                      <div className="aspect-square bg-gray-100 rounded-lg mb-2 sm:mb-4 overflow-hidden relative p-1 sm:p-2">
+                    <Link href={`/${product.url_slug}`}>
+                      <div className="aspect-square bg-gray-100 rounded-2xl mb-2 sm:mb-4 overflow-hidden relative p-1 sm:p-2">
                         {product.imagen_url ? (
                           <Image src={product.imagen_url} alt={product.nombre} fill sizes="25vw" className="object-contain group-hover:scale-110 transition-transform duration-300" />
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center"><Package className="w-8 h-8 sm:w-16 sm:h-16 text-gray-400" /></div>
                         )}
                       </div>
-                      <h3 className="font-bold text-xs sm:text-lg text-[#2E3A52] mb-1 sm:mb-2 line-clamp-2 min-h-[2rem] sm:min-h-[3.5rem] uppercase">{product.nombre}</h3>
-                      <p className="text-[10px] sm:text-xs text-gray-500 mb-2 line-clamp-2 min-h-[2.5rem] leading-tight">{stripHtml(product.descripcion)}</p>
+                      <h3 className="font-black text-xs sm:text-base text-[#2E3A52] mb-1 sm:mb-2 line-clamp-2 min-h-[2rem] sm:min-h-[3rem] uppercase tracking-tighter leading-tight group-hover:text-[#D91E7A] transition-colors">{product.nombre}</h3>
+                      <p className="text-[10px] sm:text-xs text-gray-400 mb-2 line-clamp-2 min-h-[2.5rem] leading-tight font-medium">{stripHtml(product.descripcion)}</p>
                     </Link>
                     <div className="mb-2 sm:mb-3">
-                      <span className="text-base sm:text-2xl font-bold text-[#D91E7A]">{formatCurrency(prices.precioContado)}</span>
-                      <p className="text-[10px] text-gray-400 uppercase font-bold">Precio contado</p>
+                      <span className="text-base sm:text-2xl font-black text-[#D91E7A] tracking-tighter">{formatCurrency(prices.precioContado)}</span>
+                      <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest italic">Precio contado</p>
                     </div>
 
-                    <button onClick={(e) => { e.preventDefault(); setExpandedProduct(isExpanded ? null : product.id); }} className="w-full flex items-center justify-between px-2 py-1.5 mb-2 text-[10px] sm:text-xs text-[#6B4199] hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors uppercase font-bold">
-                      <span>Financiación</span>
+                    <button onClick={(e) => { e.preventDefault(); setExpandedProduct(isExpanded ? null : product.id); }} className="w-full flex items-center justify-between px-2 py-1.5 mb-2 text-[10px] sm:text-xs text-[#6B4199] hover:bg-purple-50 rounded-xl border border-[#6B4199]/20 transition-all uppercase font-black tracking-tighter">
+                      <span>Planes a Crédito</span>
                       {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                     </button>
 
                     {isExpanded && (
-                      <div className="mb-2 p-2 bg-gray-50 rounded-lg space-y-1 text-[10px] sm:text-xs font-bold">
-                        {prices.disponible6Meses && <div className="flex justify-between"><span>6 cuotas:</span><span className="text-[#6B4199]">{formatCurrency(prices.cuota6Meses)}</span></div>}
-                        {prices.disponible12Meses && <div className="flex justify-between"><span>12 cuotas:</span><span className="text-[#6B4199]">{formatCurrency(prices.cuota12Meses)}</span></div>}
+                      <div className="mb-2 p-2 bg-slate-50 rounded-xl space-y-1 text-[10px] sm:text-xs font-black animate-in slide-in-from-top-2">
+                        {prices.disponible6Meses && <div className="flex justify-between border-b border-slate-100 pb-1"><span>6 cuotas:</span><span className="text-[#6B4199]">{formatCurrency(prices.cuota6Meses)}</span></div>}
+                        {prices.disponible12Meses && <div className="flex justify-between border-b border-slate-100 pb-1"><span>12 cuotas:</span><span className="text-[#6B4199]">{formatCurrency(prices.cuota12Meses)}</span></div>}
                         {prices.disponible18Meses && <div className="flex justify-between"><span>18 cuotas:</span><span className="text-[#6B4199]">{formatCurrency(prices.cuota18Meses)}</span></div>}
                       </div>
                     )}
 
-                    <Button onClick={(e) => { e.preventDefault(); handleAddToCart(product); }} className="w-full bg-[#D91E7A] hover:bg-[#6B4199] transition-colors text-xs py-1.5 h-10">
+                    <Button onClick={(e) => { e.preventDefault(); handleAddToCart(product); }} className="w-full bg-[#D91E7A] hover:bg-[#6B4199] transition-all text-[10px] font-black uppercase tracking-widest py-1.5 h-10 rounded-xl active:scale-95 shadow-md shadow-[#D91E7A]/20">
                       <ShoppingCart className="w-4 h-4 mr-2" />
-                      <span className="hidden sm:inline">Agregar al Carrito</span>
-                      <span className="sm:hidden">Agregar</span>
+                      Lo Quiero
                     </Button>
                   </CardContent>
                 </Card>
