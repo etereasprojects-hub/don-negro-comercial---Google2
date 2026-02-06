@@ -31,19 +31,14 @@ interface FastraxProductsTableProps {
 }
 
 export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTableProps) {
-  // DB State (Productos ya guardados)
   const [dbProducts, setDbProducts] = useState<any[]>([]);
   const [dbLoading, setDbLoading] = useState(true);
-  
-  // Import State (Productos del API)
   const [apiSkus, setApiSkus] = useState<any[]>([]);
   const [stagingProducts, setStagingProducts] = useState<any[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
-
-  // UI State
   const [searchTerm, setSearchTerm] = useState("");
   const [view, setView] = useState<"database" | "staging">("database");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,7 +69,6 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
     }
   };
 
-  // Paso 1: Obtener todos los SKUs disponibles
   const fetchSkus = async () => {
     setIsSyncing(true);
     setSyncProgress(10);
@@ -91,7 +85,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
       onLogUpdate(payload, data);
 
       if (Array.isArray(data)) {
-        setApiSkus(data.slice(1)); // Ignorar cabecera
+        setApiSkus(data.slice(1));
         setView("staging");
         setSyncProgress(100);
       }
@@ -102,11 +96,9 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
     }
   };
 
-  // Paso 2: Cargar detalles para los SKUs que estamos viendo en la página actual
   const loadDetailsForStaging = async () => {
     setIsSyncing(true);
     setSyncProgress(20);
-    
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage;
     const batch = apiSkus.slice(start, end);
@@ -124,6 +116,8 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
         });
         const d2 = await res2.json();
         const details = d2[1];
+
+        if (!details) continue;
 
         const res3 = await fetch('/api/fastrax/proxy', {
           method: 'POST',
@@ -157,14 +151,13 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
       }
       setStagingProducts(loadedBatch);
       setSyncProgress(100);
-    } catch (e) {
-      alert("Error cargando detalles del lote");
+    } catch (e: any) {
+      alert("Error cargando detalles del lote: " + e.message);
     } finally {
       setTimeout(() => setIsSyncing(false), 500);
     }
   };
 
-  // Paso 3: Guardar en Base de Datos (Corregido con validación de error)
   const commitToDb = async () => {
     setIsSyncing(true);
     setSyncProgress(0);
@@ -183,7 +176,9 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
           interes_12_meses_porcentaje: 65,
           interes_15_meses_porcentaje: 75,
           interes_18_meses_porcentaje: 85,
-          active: true // Aseguramos compatibilidad con el campo booleano
+          active: true,
+          // Si el SKU está vacío por algún error, lo mandamos como null para no chocar
+          codigo_ext: prod.codigo_ext || null 
         };
 
         const { error } = await supabase
@@ -191,16 +186,15 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
           .upsert(finalProd, { onConflict: 'codigo_ext' });
 
         if (error) {
-          console.error("Database Error:", error);
-          throw new Error(`Fallo en SKU ${prod.codigo_ext}: ${error.message}`);
+          throw new Error(`Error en SKU ${prod.codigo_ext}: ${error.message}`);
         }
       }
       
-      alert("Lote guardado correctamente en la base de datos.");
+      alert("Lote guardado correctamente.");
       loadDbProducts();
       setView("database");
     } catch (e: any) {
-      alert("ERROR AL GUARDAR: " + e.message + "\n\nVerifique si aplicó el SQL de limpieza de duplicados.");
+      alert("ERROR AL GUARDAR: " + e.message);
     } finally {
       setIsSyncing(false);
       setSyncProgress(0);
@@ -208,7 +202,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este producto de la base de datos?")) return;
+    if (!confirm("¿Eliminar este producto?")) return;
     await supabase.from("products").delete().eq("id", id);
     loadDbProducts();
   };
@@ -220,66 +214,36 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
 
   const totalPages = Math.ceil(apiSkus.length / itemsPerPage);
 
-  const openProductModal = (product: any) => {
-    setSelectedProduct(product);
-    setIsModalOpen(true);
-  };
-
   return (
     <div className="space-y-4">
-      {/* Controles Superiores */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-auto">
-          <button 
-            onClick={() => setView("database")}
-            className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${view === 'database' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            Base de Datos ({dbProducts.length})
+          <button onClick={() => setView("database")} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${view === 'database' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            BASE DE DATOS ({dbProducts.length})
           </button>
-          <button 
-            onClick={() => setView("staging")}
-            className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${view === 'staging' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            Importador ({apiSkus.length})
+          <button onClick={() => setView("staging")} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${view === 'staging' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            IMPORTADOR ({apiSkus.length})
           </button>
         </div>
 
         <div className="relative flex-1 w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input 
-            placeholder="Buscar por nombre o SKU..." 
-            className="pl-10 h-11 border-slate-200"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <Input placeholder="Buscar por nombre o SKU..." className="pl-10 h-11 border-slate-200" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
 
         <div className="flex gap-2 w-full md:w-auto">
           {view === "database" ? (
-            <Button 
-              onClick={fetchSkus} 
-              disabled={isSyncing}
-              className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-black gap-2 h-11 shadow-lg shadow-blue-100"
-            >
+            <Button onClick={fetchSkus} disabled={isSyncing} className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-black gap-2 h-11">
               {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              Sincronizar con API Fastrax
+              Sincronizar API
             </Button>
           ) : (
             <div className="flex gap-2 w-full">
-              <Button 
-                variant="outline"
-                onClick={loadDetailsForStaging}
-                disabled={isSyncing || apiSkus.length === 0}
-                className="flex-1 md:flex-none border-blue-200 text-blue-600 font-black h-11 uppercase text-[10px]"
-              >
-                Cargar Lote de Página
+              <Button variant="outline" onClick={loadDetailsForStaging} disabled={isSyncing || apiSkus.length === 0} className="flex-1 border-blue-200 text-blue-600 font-black h-11 uppercase text-[10px]">
+                Cargar Lote
               </Button>
-              <Button 
-                onClick={commitToDb}
-                disabled={isSyncing || stagingProducts.length === 0}
-                className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-black h-11 shadow-lg shadow-emerald-100 uppercase text-[10px]"
-              >
-                Guardar en Base de Datos
+              <Button onClick={commitToDb} disabled={isSyncing || stagingProducts.length === 0} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black h-11 shadow-lg shadow-emerald-100 uppercase text-[10px]">
+                Guardar en DB
               </Button>
             </div>
           )}
@@ -289,103 +253,41 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
       {isSyncing && (
         <div className="space-y-1">
           <Progress value={syncProgress} className="h-1.5 bg-slate-200" />
-          <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest text-center">Procesando integración... {Math.round(syncProgress)}%</p>
+          <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest text-center">Integrando... {Math.round(syncProgress)}%</p>
         </div>
       )}
 
-      {/* Paginación de Importación (Solo visible en staging) */}
-      {view === "staging" && apiSkus.length > 0 && (
-        <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100">
-           <div className="text-[10px] font-black text-blue-700 uppercase tracking-widest flex items-center gap-2">
-             <Layers className="w-4 h-4" /> Mostrando Lote de {itemsPerPage} de {apiSkus.length} productos totales en Fastrax
-           </div>
-           <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                disabled={currentPage === 1}
-                onClick={() => { setCurrentPage(v => v - 1); setStagingProducts([]); }}
-                className="h-8 w-8 p-0"
-              ><ChevronLeft className="w-4 h-4" /></Button>
-              <span className="text-xs font-bold text-slate-600">Pág. {currentPage} / {totalPages}</span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                disabled={currentPage === totalPages}
-                onClick={() => { setCurrentPage(v => v + 1); setStagingProducts([]); }}
-                className="h-8 w-8 p-0"
-              ><ChevronRight className="w-4 h-4" /></Button>
-           </div>
-        </div>
-      )}
-
-      {/* Tabla Principal */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[400px]">Producto</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">SKU Externo</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Costo (Base)</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">SKU</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Costo</th>
                 <th className="px-6 py-4 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest">Stock</th>
                 <th className="px-6 py-4 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {dbLoading && view === "database" ? (
-                <tr>
-                   <td colSpan={5} className="px-6 py-20 text-center">
-                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500 mb-2" />
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Accediendo a Supabase...</p>
-                   </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-24 text-center">
-                    <div className="max-w-xs mx-auto space-y-3">
-                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
-                        <Package className="w-8 h-8 text-slate-300" />
-                      </div>
-                      <p className="text-sm text-slate-500 font-medium">
-                        {view === 'database' 
-                          ? "No se han encontrado productos importados." 
-                          : "Seleccione un lote y cargue los detalles para verificar."}
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : filtered.map((product, idx) => (
+              {filtered.map((product, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-slate-100 rounded-xl flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
-                        {product.imagen_url ? (
-                          <img src={product.imagen_url} alt={product.nombre} className="w-full h-full object-contain" />
-                        ) : (
-                          <Package className="w-6 h-6 text-slate-300" />
-                        )}
+                        {product.imagen_url ? <img src={product.imagen_url} alt={product.nombre} className="w-full h-full object-contain" /> : <Package className="w-6 h-6 text-slate-300" />}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-black text-slate-900 truncate uppercase tracking-tight">{product.nombre}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge className="bg-blue-50 text-blue-600 border-blue-100 text-[8px] h-4 font-black uppercase">
-                            Fastrax API
-                          </Badge>
+                          <Badge className="bg-blue-50 text-blue-600 border-blue-100 text-[8px] h-4 font-black uppercase">Fastrax API</Badge>
                           {view === 'staging' && <span className="text-[9px] text-amber-600 font-bold uppercase italic">Sin guardar</span>}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-mono text-xs font-bold text-slate-500">
-                    {product.codigo_ext}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-black text-slate-900">₲ {product.costo.toLocaleString()}</span>
-                      <span className="text-[9px] text-slate-400 font-black uppercase">Costo Proveedor</span>
-                    </div>
-                  </td>
+                  <td className="px-6 py-4 font-mono text-xs font-bold text-slate-500">{product.codigo_ext}</td>
+                  <td className="px-6 py-4 text-sm font-black text-slate-900">₲ {product.costo.toLocaleString()}</td>
                   <td className="px-6 py-4 text-center">
                     <Badge className={`font-black tracking-widest ${product.stock > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                       {product.stock} UNI
@@ -393,22 +295,11 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                       <Button 
-                         variant="ghost" 
-                         size="sm" 
-                         onClick={() => openProductModal(product)}
-                         className="h-9 w-9 p-0 hover:bg-blue-50 text-blue-600"
-                         title="Ver detalles completos"
-                       >
+                       <Button variant="ghost" size="sm" onClick={() => { setSelectedProduct(product); setIsModalOpen(true); }} className="h-9 w-9 p-0 hover:bg-blue-50 text-blue-600">
                          {view === 'database' ? <Edit className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                        </Button>
                        {view === 'database' && (
-                         <Button 
-                           variant="ghost" 
-                           size="sm" 
-                           onClick={() => handleDelete(product.id)} 
-                           className="h-9 w-9 p-0 hover:bg-red-50 text-red-600"
-                         >
+                         <Button variant="ghost" size="sm" onClick={() => handleDelete(product.id)} className="h-9 w-9 p-0 hover:bg-red-50 text-red-600">
                            <Trash2 className="w-4 h-4" />
                          </Button>
                        )}
@@ -421,12 +312,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
         </div>
       </div>
 
-      <ProductModal
-        isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setSelectedProduct(null); }}
-        product={selectedProduct}
-        onSave={loadDbProducts}
-      />
+      <ProductModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setSelectedProduct(null); }} product={selectedProduct} onSave={loadDbProducts} />
     </div>
   );
 }
