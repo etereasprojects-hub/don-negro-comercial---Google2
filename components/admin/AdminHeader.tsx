@@ -9,24 +9,25 @@ import { supabase } from "@/lib/supabase";
 
 export default function AdminHeader() {
   const router = useRouter();
-  const [businessName, setBusinessName] = useState("Don Negro Comercial");
+  const [storeName, setStoreName] = useState("Don Negro Comercial");
 
   useEffect(() => {
-    loadBusinessName();
+    loadStoreName();
   }, []);
 
-  const loadBusinessName = async () => {
+  const loadStoreName = async () => {
     try {
+      // Corregido: business_name -> store_name
       const { data } = await supabase
         .from('store_configuration')
-        .select('business_name')
-        .single();
+        .select('store_name')
+        .maybeSingle();
 
-      if (data?.business_name) {
-        setBusinessName(data.business_name);
+      if (data?.store_name) {
+        setStoreName(data.store_name);
       }
     } catch (error) {
-      console.error('Error loading business name:', error);
+      console.error('Error loading store name:', error);
     }
   };
 
@@ -41,7 +42,7 @@ export default function AdminHeader() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Panel del Propietario</h1>
-            <p className="text-sm text-gray-500">{businessName}</p>
+            <p className="text-sm text-gray-500">{storeName}</p>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/" target="_blank">
