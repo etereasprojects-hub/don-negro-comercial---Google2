@@ -7,7 +7,7 @@ import { calculatePrices, formatCurrency } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Package, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { ShoppingCart, Package, Star, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -23,6 +23,8 @@ interface Product {
   interes_18_meses_porcentaje: number;
   imagen_url: string;
   descripcion: string;
+  source?: string;
+  ubicacion?: string;
 }
 
 export default function FeaturedProducts() {
@@ -37,7 +39,7 @@ export default function FeaturedProducts() {
   const loadFeaturedProducts = async () => {
     const { data, error } = await supabase
       .from("products")
-      .select("id, nombre, url_slug, costo, margen_porcentaje, interes_6_meses_porcentaje, interes_12_meses_porcentaje, interes_15_meses_porcentaje, interes_18_meses_porcentaje, imagen_url, descripcion")
+      .select("id, nombre, url_slug, costo, margen_porcentaje, interes_6_meses_porcentaje, interes_12_meses_porcentaje, interes_15_meses_porcentaje, interes_18_meses_porcentaje, imagen_url, descripcion, source, ubicacion")
       .eq("destacado", true)
       .eq("estado", "Activo")
       .limit(12);
@@ -61,6 +63,12 @@ export default function FeaturedProducts() {
 
     addItem({ ...product, precio });
     alert("Producto agregado al carrito");
+  };
+
+  // Función para limpiar HTML de la descripción en el preview de la tarjeta
+  const stripHtml = (html: string) => {
+    if (!html) return "";
+    return html.replace(/<[^>]*>?/gm, " ").replace(/\s+/g, " ").trim();
   };
 
   return (
@@ -96,6 +104,17 @@ export default function FeaturedProducts() {
                     <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-white" />
                     <span className="hidden sm:inline">Destacado</span>
                   </Badge>
+
+                  {/* Badge de entrega para Fastrax */}
+                  {product.source === 'Fastrax' && (
+                    <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+                      <Badge className={`${product.ubicacion?.includes('Asunción') ? 'bg-blue-600' : 'bg-orange-600'} text-[8px] sm:text-[10px] px-2 font-black uppercase tracking-tighter flex items-center gap-1`}>
+                        <Clock className="w-3 h-3" />
+                        {product.ubicacion?.includes('Asunción') ? "Entrega en 24 hs" : "Entrega en 48 hs"}
+                      </Badge>
+                    </div>
+                  )}
+
                   <CardContent className="p-2 sm:p-4">
                     <Link
                       href={`/${product.url_slug}`}
@@ -122,7 +141,7 @@ export default function FeaturedProducts() {
                         {product.nombre}
                       </h3>
                       <p className="text-xs text-gray-600 mb-2 sm:mb-3 line-clamp-2 hidden sm:block">
-                        {product.descripcion}
+                        {stripHtml(product.descripcion)}
                       </p>
                     </Link>
                     <div className="mb-2 sm:mb-3">

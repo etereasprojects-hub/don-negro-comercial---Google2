@@ -133,6 +133,15 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
         const d3 = await res3.json();
         const images = Array.isArray(d3) ? d3[1]?.base64 || [] : [];
 
+        // Lógica de ubicación: 1=CDE, 3=ASU
+        const stores = item.slj || [];
+        let finalLocation = "Fastrax Almacén";
+        const hasAsu = stores.some((s: any) => Object.keys(s)[0] === "3" && s["3"] > 0);
+        const hasCde = stores.some((s: any) => Object.keys(s)[0] === "1" && s["1"] > 0);
+        
+        if (hasAsu) finalLocation = "Fastrax Asunción";
+        else if (hasCde) finalLocation = "Fastrax CDE";
+
         loadedBatch.push({
           nombre: decodeFastraxText(details.nom || "Sin Nombre"),
           descripcion: decodeFastraxText(details.des || details.bre || ""),
@@ -142,6 +151,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
           imagen_url: images[0] || "",
           imagenes_extra: images.slice(1, 6),
           source: "Fastrax",
+          ubicacion: finalLocation,
           estado: "Activo"
         });
       }
@@ -173,7 +183,6 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
           interes_12_meses_porcentaje: 65,
           interes_15_meses_porcentaje: 75,
           interes_18_meses_porcentaje: 85,
-          ubicacion: "Fastrax Almacén",
           active: true // Aseguramos compatibilidad con el campo booleano
         };
 

@@ -15,7 +15,7 @@ import BannerSlider from "@/components/BannerSlider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Package, Search, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
+import { ShoppingCart, Package, Search, Filter, X, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
@@ -39,6 +39,7 @@ interface Product {
   categoria: string;
   stock: number;
   ubicacion: string;
+  source?: string;
 }
 
 export default function ProductsPage() {
@@ -140,7 +141,6 @@ export default function ProductsPage() {
   };
 
   const handleAddToCart = (product: Product) => {
-    // Calculamos el precio de venta real antes de añadirlo al carrito
     const calculated = calculatePrices({
       costo: Number(product.costo ?? 0),
       margen_porcentaje: Number(product.margen_porcentaje ?? 18),
@@ -156,6 +156,12 @@ export default function ProductsPage() {
     });
     
     alert("Producto agregado al carrito");
+  };
+
+  // Función para limpiar HTML de la descripción en el preview de la tarjeta
+  const stripHtml = (html: string) => {
+    if (!html) return "";
+    return html.replace(/<[^>]*>?/gm, " ").replace(/\s+/g, " ").trim();
   };
 
   return (
@@ -425,7 +431,18 @@ export default function ProductsPage() {
 
                   return (
                     <div key={product.id}>
-                      <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 border-[#D91E7A] sm:border-gray-200 hover:border-[#D91E7A] sm:hover:border-[#D91E7A]">
+                      <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 border-[#D91E7A] sm:border-gray-200 hover:border-[#D91E7A] sm:hover:border-[#D91E7A] relative overflow-hidden">
+                        
+                        {/* Badge de entrega para Fastrax */}
+                        {product.source === 'Fastrax' && (
+                          <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+                            <Badge className={`${product.ubicacion?.includes('Asunción') ? 'bg-blue-600' : 'bg-orange-600'} text-[8px] sm:text-[10px] px-2 font-black uppercase tracking-tighter flex items-center gap-1`}>
+                              <Clock className="w-3 h-3" />
+                              {product.ubicacion?.includes('Asunción') ? "Entrega en 24 hs" : "Entrega en 48 hs"}
+                            </Badge>
+                          </div>
+                        )}
+
                         <CardContent className="p-2 sm:p-4">
                           <Link
                             href={`/${product.url_slug}`}
@@ -458,7 +475,7 @@ export default function ProductsPage() {
                               {product.nombre}
                             </h3>
                             <p className="text-xs text-gray-600 mb-2 sm:mb-3 line-clamp-2 hidden sm:block">
-                              {product.descripcion}
+                              {stripHtml(product.descripcion)}
                             </p>
                           </Link>
                           <div className="mb-2 sm:mb-3">
