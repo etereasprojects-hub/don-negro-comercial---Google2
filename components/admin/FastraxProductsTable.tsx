@@ -95,7 +95,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
         setApiSkus(filteredList); 
         setView("staging");
         setCurrentPage(1);
-        setStagingProducts([]); // Limpiar previstos
+        setStagingProducts([]); 
         setSyncProgress(100);
       }
     } catch (error) {
@@ -142,23 +142,22 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
         const d3 = await res3.json();
         const images = Array.isArray(d3) && d3[1] ? d3[1].base64 || [] : [];
 
-        // Lógica de ubicación: 1=CDE, 3=ASU
-        // CORRECCIÓN: Validamos que stores sea un arreglo antes de usar .some()
+        // LÓGICA DE UBICACIÓN Y ID DE SUCURSAL
         const stores = Array.isArray(item.slj) ? item.slj : [];
         let finalLocation = "Fastrax Almacén";
+        let branchId = "";
         
-        const hasAsu = stores.some((s: any) => {
-          const key = Object.keys(s)[0];
-          return key === "3" && s[key] > 0;
-        });
+        // Buscamos stock en Asunción (3) primero para prioridad de 24hs
+        const asuStock = stores.find((s: any) => Object.keys(s)[0] === "3")?.["3"] || 0;
+        const cdeStock = stores.find((s: any) => Object.keys(s)[0] === "1")?.["1"] || 0;
         
-        const hasCde = stores.some((s: any) => {
-          const key = Object.keys(s)[0];
-          return key === "1" && s[key] > 0;
-        });
-        
-        if (hasAsu) finalLocation = "Fastrax Asunción";
-        else if (hasCde) finalLocation = "Fastrax CDE";
+        if (Number(asuStock) > 0) {
+          finalLocation = "Fastrax Asunción";
+          branchId = "3";
+        } else if (Number(cdeStock) > 0) {
+          finalLocation = "Fastrax CDE";
+          branchId = "1";
+        }
 
         loadedBatch.push({
           nombre: decodeFastraxText(details.nom || "Sin Nombre"),
@@ -170,6 +169,8 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
           imagenes_extra: images.slice(1, 6),
           source: "Fastrax",
           ubicacion: finalLocation,
+          fastrax_id_sucursal: branchId,
+          fastrax_distribucion: stores,
           estado: "Activo"
         });
       }
@@ -226,12 +227,6 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este producto?")) return;
-    await supabase.from("products").delete().eq("id", id);
-    loadDbProducts();
-  };
-
   const filtered = (view === "database" ? dbProducts : stagingProducts).filter(p => 
     p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
     (p.codigo_ext && p.codigo_ext.toString().includes(searchTerm))
@@ -242,6 +237,19 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
   const openProductModal = (product: any) => {
     setSelectedProduct(product);
     setIsModalOpen(true);
+  };
+
+  // Fix: Added missing handleDelete function to resolve line 427 error
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Estás seguro de eliminar este producto?")) return;
+
+    const { error } = await supabase.from("products").delete().eq("id", id);
+
+    if (error) {
+      alert("Error al eliminar producto");
+    } else {
+      loadDbProducts();
+    }
   };
 
   return (
@@ -391,6 +399,11 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
                           <Badge className="bg-blue-50 text-blue-600 border-blue-100 text-[8px] h-4 font-black uppercase">
                             Fastrax API
                           </Badge>
+                          {product.fastrax_id_sucursal && (
+                            <Badge className={`${product.fastrax_id_sucursal === '3' ? 'bg-blue-600' : 'bg-orange-600'} text-white text-[8px] h-4 font-black uppercase`}>
+                              {product.fastrax_id_sucursal === '3' ? 'Asunción' : 'CDE'}
+                            </Badge>
+                          )}
                           {view === 'staging' && <span className="text-[9px] text-amber-600 font-bold uppercase italic">Sin guardar</span>}
                         </div>
                       </div>
