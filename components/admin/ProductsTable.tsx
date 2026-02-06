@@ -87,17 +87,17 @@ export default function ProductsTable() {
     if (searchTerm) {
       filtered = filtered.filter(
         (p) =>
-          p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+          (p.nombre || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (p.descripcion || "").toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     if (codeFilter) {
       filtered = filtered.filter(
         (p) =>
-          p.codigo_wos.toLowerCase().includes(codeFilter.toLowerCase()) ||
-          p.codigo_pro.toLowerCase().includes(codeFilter.toLowerCase()) ||
-          p.codigo_ext.toLowerCase().includes(codeFilter.toLowerCase())
+          (p.codigo_wos || "").toLowerCase().includes(codeFilter.toLowerCase()) ||
+          (p.codigo_pro || "").toLowerCase().includes(codeFilter.toLowerCase()) ||
+          (p.codigo_ext || "").toLowerCase().includes(codeFilter.toLowerCase())
       );
     }
 
@@ -111,9 +111,9 @@ export default function ProductsTable() {
 
     if (stockFilter !== "all") {
       if (stockFilter === "in-stock") {
-        filtered = filtered.filter((p) => p.stock > 0);
+        filtered = filtered.filter((p) => (p.stock || 0) > 0);
       } else if (stockFilter === "out-of-stock") {
-        filtered = filtered.filter((p) => p.stock === 0);
+        filtered = filtered.filter((p) => (p.stock || 0) === 0);
       }
     }
 
@@ -439,8 +439,8 @@ export default function ProductsTable() {
                           {product.codigo_wos}
                         </div>
                       )}
-                      {product.codigo_pro && (
-                        <div className="text-gray-600">Ext: {product.codigo_pro}</div>
+                      {product.codigo_ext && (
+                        <div className="text-gray-600 font-mono">EXT: {product.codigo_ext}</div>
                       )}
                     </div>
                   </td>
@@ -457,10 +457,10 @@ export default function ProductsTable() {
                       interes_18_meses_porcentaje: Number(product.interes_18_meses_porcentaje ?? 85),
                     }).precioContado)}
                   </td>
-                  <td className="px-4 py-4 text-sm text-gray-700">{product.stock}</td>
+                  <td className="px-4 py-4 text-sm text-gray-700">{product.stock || 0}</td>
                   <td className="px-4 py-4">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      {product.ubicacion}
+                      {product.ubicacion || "Sin Ubicación"}
                     </span>
                   </td>
                   <td className="px-4 py-4">
@@ -471,7 +471,7 @@ export default function ProductsTable() {
                           : "bg-gray-100 text-gray-800"
                       }`}
                     >
-                      {product.estado}
+                      {product.estado || "Inactivo"}
                     </span>
                   </td>
                   <td className="px-4 py-4">
@@ -503,7 +503,7 @@ export default function ProductsTable() {
         </div>
         {filteredProducts.length === 0 && (
           <div className="text-center py-12 text-gray-500">
-            No se encontraron productos
+            No se encontraron productos disponibles.
           </div>
         )}
       </div>

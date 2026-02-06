@@ -57,6 +57,8 @@ interface Product {
   stock: number;
   ubicacion: string;
   source?: string;
+  estado: string;
+  active: boolean;
 }
 
 function ProductsContent() {
@@ -95,22 +97,27 @@ function ProductsContent() {
       setLoadProgress(prev => (prev < 90 ? prev + 10 : prev));
     }, 200);
 
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .eq("estado", "Activo")
-      .order("nombre");
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .or('estado.eq.Activo,active.eq.true')
+        .order("nombre");
 
-    clearInterval(interval);
-    setLoadProgress(100);
+      if (error) throw error;
 
-    if (!error) {
-      setProducts(data || []);
-      const cats = Array.from(new Set(data?.map((p) => p.categoria).filter(Boolean)));
-      setCategories(cats as string[]);
+      if (data) {
+        setProducts(data || []);
+        const cats = Array.from(new Set(data.map((p) => p.categoria).filter(Boolean)));
+        setCategories(cats as string[]);
+      }
+    } catch (err) {
+      console.error("Error loading products:", err);
+    } finally {
+      clearInterval(interval);
+      setLoadProgress(100);
+      setLoading(false);
     }
-    
-    setTimeout(() => setLoading(false), 500);
   };
 
   const filterProducts = () => {
@@ -118,8 +125,8 @@ function ProductsContent() {
     
     if (searchTerm) {
       filtered = filtered.filter(p => 
-        p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        p.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
+        (p.nombre || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (p.descripcion || "").toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -139,7 +146,15 @@ function ProductsContent() {
     
     if (priceRange) {
       filtered = filtered.filter(p => {
-        const price = calculatePrices(p).precioContado;
+        const prices = calculatePrices({
+          costo: Number(p.costo ?? 0),
+          margen_porcentaje: Number(p.margen_porcentaje ?? 18),
+          interes_6_meses_porcentaje: Number(p.interes_6_meses_porcentaje ?? 45),
+          interes_12_meses_porcentaje: Number(p.interes_12_meses_porcentaje ?? 65),
+          interes_15_meses_porcentaje: Number(p.interes_15_meses_porcentaje ?? 75),
+          interes_18_meses_porcentaje: Number(p.interes_18_meses_porcentaje ?? 85),
+        });
+        const price = prices.precioContado;
         return price >= priceRange[0] && price <= priceRange[1];
       });
     }
@@ -382,7 +397,7 @@ function ProductsContent() {
 
                     <CardContent className="p-3 sm:p-5 flex flex-col h-full">
                       <Link href={`/${product.url_slug}`} className="block group/img">
-                        <div className="aspect-square bg-gray-50 rounded-2xl mb-4 overflow-hidden relative p-4">
+                        <div className="aspect-square bg-gray-100 rounded-2xl mb-4 overflow-hidden relative p-4">
                           {product.imagen_url ? (
                             <Image 
                               src={product.imagen_url} 
