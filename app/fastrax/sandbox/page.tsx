@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { 
   Database, Zap, Search, RefreshCw, Loader2, Package, Grid, Terminal,
-  Activity, AlertCircle, ShoppingCart, Send, FileSearch, Receipt, Trash2, Code, Server, MapPin, DollarSign
+  Activity, AlertCircle, ShoppingCart, Send, FileSearch, Receipt, Trash2, Code, Server, MapPin
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,36 +16,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FastraxLiveImage from "@/components/fastrax/FastraxLiveImage";
 import FastraxLiveDetail from "@/components/fastrax/FastraxLiveDetail";
 
-// Componente interno para cargar el precio en tiempo real
-function FastraxLivePrice({ sku }: { sku: string }) {
-  const [price, setPrice] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchPrice = async () => {
-      try {
-        const res = await fetch('/api/fastrax/proxy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ope: 11, sku: sku })
-        });
-        const data = await res.json();
-        if (Array.isArray(data) && data[1]) {
-          setPrice(Number(data[1].pre || 0));
-        }
-      } catch (e) {
-        console.error("Error fetching live price", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPrice();
-  }, [sku]);
-
-  if (loading) return <div className="h-4 w-16 bg-slate-800 animate-pulse rounded" />;
-  return <span className="text-xs font-black text-emerald-400">₲ {price?.toLocaleString() || "---"}</span>;
-}
-
 export default function FastraxSandbox() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +23,10 @@ export default function FastraxSandbox() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   
+  // Mapa de precios en memoria (SKU -> Precio)
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({});
+  const [loadingPrices, setLoadingPrices] = useState(false);
+
   // States para Pedidos
   const [orderSku, setOrderSku] = useState("");
   const [orderQty, setOrderQty] = useState("1");
@@ -74,16 +48,61 @@ export default function FastraxSandbox() {
 
   const loadProducts = async () => {
     setLoading(true);
-    // Cargamos productos, incluyendo stock y ubicación (costo ya no existe en DB)
     const { data } = await supabase.from("fastrax_products").select("*").order("stock", { ascending: false });
     if (data) setProducts(data);
     setLoading(false);
   };
 
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => 
+      p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [products, searchTerm]);
+
+  // EFECTO CRÍTICO: Cargar precios masivos cuando la lista filtrada cambia
+  useEffect(() => {
+    if (filteredProducts.length > 0) {
+      fetchPricesInBulk(filteredProducts.map(p => p.sku));
+    }
+  }, [filteredProducts]);
+
+  const fetchPricesInBulk = async (skus: string[]) => {
+    if (loadingPrices || skus.length === 0) return;
+    setLoadingPrices(true);
+    try {
+      // Limitamos a lotes de 50 para no exceder límites de URL si los hubiera
+      const batch = skus.slice(0, 50); 
+      const res = await fetch('/api/fastrax/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ope: 11, sku: batch.join(",") })
+      });
+      const data = await res.json();
+      
+      if (Array.isArray(data)) {
+        const newPrices: Record<string, number> = { ...livePrices };
+        data.slice(1).forEach((item: any) => {
+          newPrices[item.sku] = Number(item.pre || 0);
+        });
+        setLivePrices(newPrices);
+      }
+    } catch (e) {
+      console.error("Error fetching bulk prices", e);
+    } finally {
+      setLoadingPrices(false);
+    }
+  };
+
   const determineLocation = (slj: any[]) => {
     if (!Array.isArray(slj)) return "Almacén";
-    const hasAsu = slj.some(s => Object.keys(s)[0] === "3" && Number(Object.values(s)[0]) > 0);
-    const hasCde = slj.some(s => Object.keys(s)[0] === "1" && Number(Object.values(s)[0]) > 0);
+    const hasAsu = slj.some(s => {
+      const key = Object.keys(s)[0];
+      return key === "3" && Number(s[key]) > 0;
+    });
+    const hasCde = slj.some(s => {
+      const key = Object.keys(s)[0];
+      return key === "1" && Number(s[key]) > 0;
+    });
     if (hasAsu) return "Asunción";
     if (hasCde) return "Ciudad del Este";
     return "Almacén";
@@ -93,6 +112,7 @@ export default function FastraxSandbox() {
     if (isSyncing) return;
     setIsSyncing(true);
     setSyncProgress(5);
+
     try {
       const res1 = await fetch('/api/fastrax/proxy', {
         method: 'POST',
@@ -101,12 +121,14 @@ export default function FastraxSandbox() {
       });
       const data1 = await res1.json();
       
-      // Filtramos solo productos con Stock > 0 para la sincronización
-      const skusWithStock = Array.isArray(data1) ? data1.slice(1).filter((p: any) => Number(p.sal) > 0) : [];
+      // Filtro de Stock > 0 solicitado
+      const skusWithStock = Array.isArray(data1) 
+        ? data1.slice(1).filter((p: any) => Number(p.sal) > 0) 
+        : [];
       
       if (skusWithStock.length === 0) throw new Error("No se obtuvieron productos con stock disponible.");
       
-      const batchSize = 30;
+      const batchSize = 25;
       for (let i = 0; i < skusWithStock.length; i += batchSize) {
         const batch = skusWithStock.slice(i, i + batchSize);
         const progress = Math.round(((i + batch.length) / skusWithStock.length) * 100);
@@ -128,16 +150,20 @@ export default function FastraxSandbox() {
             sku: det.sku,
             nombre: nombre,
             stock: Number(baseInfo?.sal || 0),
-            ubicacion: determineLocation(baseInfo?.slj),
+            ubicacion: determineLocation(baseInfo?.slj), // Actualización de ubicación
             categoria: "Fastrax Live",
             url_slug: nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_') + "_" + det.sku
+            // NOTA: El costo NO se incluye aquí para no guardarlo en DB
           };
         });
 
-        // Actualizamos base de datos (Upsert por SKU para no duplicar ni borrar otros campos)
-        await supabase.from("fastrax_products").upsert(toInsert, { onConflict: 'sku' });
+        if (toInsert.length > 0) {
+          await supabase.from("fastrax_products").upsert(toInsert, { onConflict: 'sku' });
+        }
       }
-      loadProducts();
+      
+      await loadProducts();
+      alert("Catálogo Lite sincronizado (Ubicaciones y Stock actualizados).");
     } catch (e: any) { 
       alert("Error: " + e.message); 
     } finally { 
@@ -176,10 +202,6 @@ export default function FastraxSandbox() {
   const handleFactureOrder = () => callApi(15, { pdc: orderId, ped: customPed });
   const handleDeleteOrder = () => callApi(16, { pdc: orderId, ped: customPed });
 
-  const filteredProducts = products.filter(p => 
-    p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-8 font-sans">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -192,21 +214,31 @@ export default function FastraxSandbox() {
                 <span>donegro@fastrax:~/sandbox/inventory$</span>
               </div>
               <h1 className="text-4xl font-black italic uppercase tracking-tighter">Sandbox Profesional</h1>
-              <p className="text-slate-500 font-medium italic">Sincronización de Ubicación y Precios Live</p>
+              <p className="text-slate-500 font-medium italic">Sincronización Lite (Sin Costo en DB) </p>
            </div>
            
            <div className="flex gap-4 w-full md:w-auto">
               <Button onClick={runLiteSync} disabled={isSyncing} className="bg-blue-600 hover:bg-blue-500 text-white font-black uppercase italic gap-2 h-12 px-6">
                 {isSyncing ? <Loader2 className="animate-spin" /> : <Zap className="fill-white" />}
-                Sync Ubicaciones (+Stock)
+                Sync Catálogo Lite
               </Button>
            </div>
         </div>
 
+        {isSyncing && (
+          <div className="bg-slate-900 border border-blue-500/30 p-6 rounded-2xl space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-black uppercase text-blue-400">Actualizando Ubicación y Stock</span>
+              <span className="text-xs font-mono text-white">{syncProgress}%</span>
+            </div>
+            <Progress value={syncProgress} className="h-1.5 bg-slate-950" />
+          </div>
+        )}
+
         <Tabs defaultValue="catalog" className="space-y-6">
           <TabsList className="bg-slate-900 p-1 border border-slate-800 rounded-xl">
-             <TabsTrigger value="catalog" className="data-[state=active]:bg-blue-600 font-black uppercase text-[10px] tracking-widest px-8 py-3">Catálogo Stock 100%</TabsTrigger>
-             <TabsTrigger value="lifecycle" className="data-[state=active]:bg-pink-600 font-black uppercase text-[10px] tracking-widest px-8 py-3">Ciclo de Vida del Pedido</TabsTrigger>
+             <TabsTrigger value="catalog" className="data-[state=active]:bg-blue-600 font-black uppercase text-[10px] tracking-widest px-8 py-3">Catálogo Stock &gt; 0</TabsTrigger>
+             <TabsTrigger value="lifecycle" className="data-[state=active]:bg-pink-600 font-black uppercase text-[10px] tracking-widest px-8 py-3">Flujo de Pedidos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="catalog" className="space-y-6">
@@ -218,10 +250,12 @@ export default function FastraxSandbox() {
              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {filteredProducts.map((product) => {
                   const isOutOfStock = product.stock <= 0;
+                  const livePrice = livePrices[product.sku];
+
                   return (
-                    <Card key={product.id} className={`bg-slate-900 border-slate-800 hover:border-blue-500/50 transition-all group cursor-pointer overflow-hidden rounded-2xl flex flex-col ${isOutOfStock ? 'opacity-50 grayscale border-red-900/50' : ''}`}>
+                    <Card key={product.id} className={`bg-slate-900 border-slate-800 hover:border-blue-500/50 transition-all group cursor-pointer overflow-hidden rounded-2xl flex flex-col ${isOutOfStock ? 'border-red-900/50 bg-red-950/10' : ''}`}>
                       <div className="aspect-square bg-slate-950 relative flex items-center justify-center p-4">
-                        <FastraxLiveImage sku={product.sku} className="w-full h-full" />
+                        <FastraxLiveImage sku={product.sku} className={`w-full h-full ${isOutOfStock ? 'grayscale opacity-50' : ''}`} />
                         <div className="absolute top-2 left-2 flex flex-col gap-1">
                           <Badge className="bg-slate-950/80 border-slate-700 text-[8px] font-black py-0 px-2 h-4 uppercase">{product.sku}</Badge>
                           {product.ubicacion && (
@@ -232,13 +266,17 @@ export default function FastraxSandbox() {
                         </div>
                       </div>
                       <CardContent className="p-4 space-y-3 flex-1">
-                        <h3 className="text-[11px] font-black text-white uppercase line-clamp-2 leading-tight h-8">{product.nombre}</h3>
+                        <h3 className={`text-[11px] font-black uppercase line-clamp-2 leading-tight h-8 ${isOutOfStock ? 'text-red-400' : 'text-white'}`}>
+                          {product.nombre}
+                        </h3>
                         <div className="flex items-center justify-between border-t border-slate-800/50 pt-2">
                           <div className="flex flex-col">
                             <span className="text-[8px] text-slate-500 uppercase font-black">Precio Live</span>
-                            <FastraxLivePrice sku={product.sku} />
+                            <span className="text-xs font-black text-emerald-400">
+                              {livePrice ? `₲ ${livePrice.toLocaleString()}` : <span className="animate-pulse text-slate-600">---</span>}
+                            </span>
                           </div>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-500 hover:bg-blue-500/10" onClick={() => { setOrderSku(product.sku); alert("SKU cargado para simulación de pedido"); }}>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-500 hover:bg-blue-500/10" onClick={() => { setOrderSku(product.sku); alert("SKU copiado para pedido"); }}>
                             <ShoppingCart size={16} />
                           </Button>
                         </div>
@@ -296,7 +334,7 @@ export default function FastraxSandbox() {
                          <CardHeader className="bg-slate-950 p-3 border-b border-slate-800 flex flex-row items-center justify-between">
                             <CardTitle className="text-[9px] font-black uppercase text-blue-400 flex items-center gap-2"><Code size={12} /> JSON Saliente</CardTitle>
                          </CardHeader>
-                         <CardContent className="p-0 h-40 overflow-auto custom-scrollbar">
+                         <CardContent className="p-0 h-40 overflow-auto custom-scrollbar text-white">
                             <pre className="p-4 text-[10px] font-mono text-blue-300 leading-tight">
                                {lastPayload ? JSON.stringify(lastPayload, null, 2) : "// Esperando ejecución..."}
                             </pre>
@@ -306,7 +344,7 @@ export default function FastraxSandbox() {
                          <CardHeader className="bg-slate-950 p-3 border-b border-slate-800 flex flex-row items-center justify-between">
                             <CardTitle className="text-[9px] font-black uppercase text-emerald-400 flex items-center gap-2"><Server size={12} /> JSON Respuesta</CardTitle>
                          </CardHeader>
-                         <CardContent className="p-0 h-40 overflow-auto custom-scrollbar">
+                         <CardContent className="p-0 h-40 overflow-auto custom-scrollbar text-white">
                             <pre className="p-4 text-[10px] font-mono text-emerald-300 leading-tight">
                                {lastResponse ? JSON.stringify(lastResponse, null, 2) : "// No hay datos..."}
                             </pre>
