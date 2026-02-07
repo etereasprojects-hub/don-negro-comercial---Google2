@@ -174,7 +174,7 @@ export default function FastraxSandbox() {
             sku: det.sku,
             nombre: nombre,
             stock: Number(baseInfo?.sal || 0),
-            costo: Number(det.pre || 0), // Guardamos el costo extraído del detalle
+            costo: Number(det.pre || 0),
             ubicacion: determineLocation(baseInfo?.slj),
             categoria: catName,
             url_slug: nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_') + "_" + det.sku
@@ -343,7 +343,13 @@ export default function FastraxSandbox() {
                           <div className="flex flex-col">
                             <span className="text-[8px] text-slate-500 uppercase font-black tracking-tighter">Costo Sync</span>
                             <span className="text-xs font-black text-emerald-400">
-                              {product.costo ? `₲ ${Number(product.costo).toLocaleString()}` : "—"}
+                              {product.costo ? `₲ ${Number(product.costo).toLocaleString()}` : (
+                                <div className="flex items-center gap-1 animate-pulse">
+                                  <div className="w-1 h-1 bg-slate-700 rounded-full" />
+                                  <div className="w-1 h-1 bg-slate-700 rounded-full" />
+                                  <div className="w-1 h-1 bg-slate-700 rounded-full" />
+                                </div>
+                              )}
                             </span>
                           </div>
                           <Button 
@@ -426,6 +432,7 @@ export default function FastraxSandbox() {
                                {lastResponse ? JSON.stringify(lastResponse, null, 2) : "// No hay datos..."}
                             </pre>
                          </CardContent>
+                      </Card>
                    </div>
 
                    {orderId && (
