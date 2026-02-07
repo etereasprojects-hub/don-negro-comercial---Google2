@@ -32,7 +32,7 @@ export default function AdminTabs({ activeTab }: AdminTabsProps) {
   const handleTabClick = (tabId: string) => {
     const routes: Record<string, string> = {
       "productos": "/owner/dashboard",
-      "productos-fastrax": "/fastrax-productos",
+      "productos-fastrax": "/owner/fastrax",
       "categorias": "/owner/categorias",
       "pedidos": "/owner/pedidos",
       "ventas": "/owner/ventas",
