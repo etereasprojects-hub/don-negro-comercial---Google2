@@ -66,20 +66,12 @@ export default function FastraxSandbox() {
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      const matchSearch = p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchSearch = p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchUbi = filterUbicacion === "all" || p.ubicacion === filterUbicacion;
       const matchCat = filterCategoria === "all" || p.categoria === filterCategoria;
       return matchSearch && matchUbi && matchCat;
     });
   }, [products, searchTerm, filterUbicacion, filterCategoria]);
-
-  // Carga masiva de precios al cambiar la vista
-  useEffect(() => {
-    if (filteredProducts.length > 0) {
-      const skus = filteredProducts.slice(0, 50).map(p => p.sku);
-      fetchPricesInBulk(skus);
-    }
-  }, [filteredProducts]);
 
   const fetchPricesInBulk = async (skus: string[]) => {
     const skusToFetch = skus.filter(sku => !livePrices[sku]);
@@ -137,7 +129,6 @@ export default function FastraxSandbox() {
     setSyncProgress(2);
 
     try {
-      // 1. Obtener Diccionario de Categorías (Op 93) para guardar nombres reales
       const resCat = await fetch('/api/fastrax/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -151,7 +142,6 @@ export default function FastraxSandbox() {
         });
       }
 
-      // 2. Obtener Lista Maestra de Stock (Op 1)
       const res1 = await fetch('/api/fastrax/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -162,7 +152,6 @@ export default function FastraxSandbox() {
       
       if (skusWithStock.length === 0) throw new Error("No hay stock disponible en el servidor.");
 
-      // 3. Procesar por lotes para obtener detalles (Op 2) y guardar
       const batchSize = 25;
       for (let i = 0; i < skusWithStock.length; i += batchSize) {
         const batch = skusWithStock.slice(i, i + batchSize);
@@ -185,6 +174,7 @@ export default function FastraxSandbox() {
             sku: det.sku,
             nombre: nombre,
             stock: Number(baseInfo?.sal || 0),
+            costo: Number(det.pre || 0), // Guardamos el costo extraído del detalle
             ubicacion: determineLocation(baseInfo?.slj),
             categoria: catName,
             url_slug: nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_') + "_" + det.sku
@@ -236,7 +226,6 @@ export default function FastraxSandbox() {
     <div className="min-h-screen bg-slate-950 text-slate-100 p-8 font-sans">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Header Terminal Style */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-slate-800 pb-8">
            <div className="space-y-2">
               <div className="flex items-center gap-2 text-blue-500 font-mono text-xs uppercase tracking-tighter">
@@ -273,7 +262,6 @@ export default function FastraxSandbox() {
           </TabsList>
 
           <TabsContent value="catalog" className="space-y-6">
-             {/* Barra de Filtros Inteligente */}
              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="md:col-span-2 relative group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-blue-500 transition-colors" />
@@ -324,7 +312,7 @@ export default function FastraxSandbox() {
 
                   return (
                     <Card 
-                      key={product.id} 
+                      key={product.sku} 
                       className={`bg-slate-900 border-slate-800 hover:border-blue-500/50 transition-all group cursor-pointer overflow-hidden rounded-2xl flex flex-col ${isOutOfStock ? 'opacity-50' : ''}`}
                       onClick={() => { setSelectedProduct(product); setDetailOpen(true); }}
                     >
@@ -353,21 +341,15 @@ export default function FastraxSandbox() {
                         <h3 className="text-[11px] font-black text-white uppercase line-clamp-2 leading-tight h-8">{product.nombre}</h3>
                         <div className="flex items-center justify-between border-t border-slate-800/50 pt-2">
                           <div className="flex flex-col">
-                            <span className="text-[8px] text-slate-500 uppercase font-black tracking-tighter">Precio Live</span>
+                            <span className="text-[8px] text-slate-500 uppercase font-black tracking-tighter">Costo Sync</span>
                             <span className="text-xs font-black text-emerald-400">
-                              {livePrice ? `₲ ${livePrice.toLocaleString()}` : (
-                                <div className="flex items-center gap-1 animate-pulse">
-                                  <div className="w-1 h-1 bg-slate-700 rounded-full" />
-                                  <div className="w-1 h-1 bg-slate-700 rounded-full" />
-                                  <div className="w-1 h-1 bg-slate-700 rounded-full" />
-                                </div>
-                              )}
+                              {product.costo ? `₲ ${Number(product.costo).toLocaleString()}` : "—"}
                             </span>
                           </div>
                           <Button 
                             size="icon" 
                             variant="ghost" 
-                            className="h-8 w-8 text-blue-500 hover:bg-blue-500/10" 
+                            className="h-8 w-8 text-blue-500 hover:bg-blue-50/10" 
                             onClick={(e) => { 
                               e.stopPropagation();
                               setOrderSku(product.sku); 
@@ -386,7 +368,6 @@ export default function FastraxSandbox() {
 
           <TabsContent value="lifecycle" className="space-y-8 animate-in fade-in slide-in-from-right-4">
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Paso 1: Formulario */}
                 <div className="space-y-6">
                    <Card className="bg-slate-900 border-slate-800 border-2 border-dashed">
                       <CardHeader><CardTitle className="text-sm font-black uppercase text-blue-400">1. Preparar Orden</CardTitle></CardHeader>
@@ -424,7 +405,6 @@ export default function FastraxSandbox() {
                    </div>
                 </div>
 
-                {/* Paso 2: Payloads */}
                 <div className="lg:col-span-2 space-y-6">
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Card className="bg-slate-900 border-slate-800">
@@ -446,10 +426,8 @@ export default function FastraxSandbox() {
                                {lastResponse ? JSON.stringify(lastResponse, null, 2) : "// No hay datos..."}
                             </pre>
                          </CardContent>
-                      </Card>
                    </div>
 
-                   {/* Resumen Visual del Pedido */}
                    {orderId && (
                      <Card className="bg-slate-900 border-slate-800 border-l-4 border-l-pink-600 animate-in zoom-in-95">
                         <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
