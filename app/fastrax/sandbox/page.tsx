@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { 
   Database, Zap, Search, RefreshCw, Loader2, Package, Grid, Terminal,
-  Activity, AlertCircle, ShoppingCart, Send, FileSearch, Receipt, Trash2, Code, Server, MapPin
+  Activity, AlertCircle, ShoppingCart, Send, FileSearch, Receipt, Trash2, Code, Server, MapPin, DollarSign
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export default function FastraxSandbox() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   
-  // Mapa de precios en memoria (SKU -> Precio)
+  // Mapa de precios en memoria (SKU -> Precio) - 100% Real Time
   const [livePrices, setLivePrices] = useState<Record<string, number>>({});
   const [loadingPrices, setLoadingPrices] = useState(false);
 
@@ -48,34 +48,42 @@ export default function FastraxSandbox() {
 
   const loadProducts = async () => {
     setLoading(true);
+    // Cargamos los productos que tenemos en la base de datos local
     const { data } = await supabase.from("fastrax_products").select("*").order("stock", { ascending: false });
     if (data) setProducts(data);
     setLoading(false);
   };
 
+  // Filtrado reactivo por nombre o SKU
   const filteredProducts = useMemo(() => {
     return products.filter(p => 
       p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [products, searchTerm]);
 
-  // EFECTO CRÍTICO: Cargar precios masivos cuando la lista filtrada cambia
+  // CARGA MASIVA DE PRECIOS: Se dispara cuando la lista visible cambia
   useEffect(() => {
     if (filteredProducts.length > 0) {
-      fetchPricesInBulk(filteredProducts.map(p => p.sku));
+      // Tomamos los primeros 50 SKUs visibles para no exceder límites de URL en una sola petición
+      const visibleSkus = filteredProducts.slice(0, 50).map(p => p.sku);
+      fetchPricesInBulk(visibleSkus);
     }
   }, [filteredProducts]);
 
   const fetchPricesInBulk = async (skus: string[]) => {
     if (loadingPrices || skus.length === 0) return;
+    
+    // Verificamos si ya tenemos estos precios para no re-pedirlos constantemente
+    const skusToFetch = skus.filter(sku => !livePrices[sku]);
+    if (skusToFetch.length === 0) return;
+
     setLoadingPrices(true);
     try {
-      // Limitamos a lotes de 50 para no exceder límites de URL si los hubiera
-      const batch = skus.slice(0, 50); 
+      // Op 11 permite múltiples SKUs separados por coma. UNA SOLA PETICIÓN para toda la pantalla.
       const res = await fetch('/api/fastrax/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ope: 11, sku: batch.join(",") })
+        body: JSON.stringify({ ope: 11, sku: skusToFetch.join(",") })
       });
       const data = await res.json();
       
@@ -87,7 +95,7 @@ export default function FastraxSandbox() {
         setLivePrices(newPrices);
       }
     } catch (e) {
-      console.error("Error fetching bulk prices", e);
+      console.error("Error al cargar precios en lote:", e);
     } finally {
       setLoadingPrices(false);
     }
@@ -108,12 +116,14 @@ export default function FastraxSandbox() {
     return "Almacén";
   };
 
+  // SINCRONIZACIÓN LITE: Solo descarga datos de stock y ubicación. NO GUARDA COSTO.
   const runLiteSync = async () => {
     if (isSyncing) return;
     setIsSyncing(true);
     setSyncProgress(5);
 
     try {
+      // 1. Obtener lista maestra
       const res1 = await fetch('/api/fastrax/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,13 +131,14 @@ export default function FastraxSandbox() {
       });
       const data1 = await res1.json();
       
-      // Filtro de Stock > 0 solicitado
+      // Filtramos productos con stock real > 0
       const skusWithStock = Array.isArray(data1) 
         ? data1.slice(1).filter((p: any) => Number(p.sal) > 0) 
         : [];
       
-      if (skusWithStock.length === 0) throw new Error("No se obtuvieron productos con stock disponible.");
+      if (skusWithStock.length === 0) throw new Error("No hay productos con stock en el servidor.");
       
+      // 2. Procesar por lotes de 25 para obtener nombres (Op 2)
       const batchSize = 25;
       for (let i = 0; i < skusWithStock.length; i += batchSize) {
         const batch = skusWithStock.slice(i, i + batchSize);
@@ -150,10 +161,10 @@ export default function FastraxSandbox() {
             sku: det.sku,
             nombre: nombre,
             stock: Number(baseInfo?.sal || 0),
-            ubicacion: determineLocation(baseInfo?.slj), // Actualización de ubicación
+            ubicacion: determineLocation(baseInfo?.slj),
             categoria: "Fastrax Live",
             url_slug: nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_') + "_" + det.sku
-            // NOTA: El costo NO se incluye aquí para no guardarlo en DB
+            // IMPORTANTE: NO se incluye 'costo' aquí. Se respeta la estructura de tu DB.
           };
         });
 
@@ -163,7 +174,7 @@ export default function FastraxSandbox() {
       }
       
       await loadProducts();
-      alert("Catálogo Lite sincronizado (Ubicaciones y Stock actualizados).");
+      alert("Catálogo sincronizado exitosamente (Stock y Ubicaciones).");
     } catch (e: any) { 
       alert("Error: " + e.message); 
     } finally { 
@@ -214,13 +225,13 @@ export default function FastraxSandbox() {
                 <span>donegro@fastrax:~/sandbox/inventory$</span>
               </div>
               <h1 className="text-4xl font-black italic uppercase tracking-tighter">Sandbox Profesional</h1>
-              <p className="text-slate-500 font-medium italic">Sincronización Lite (Sin Costo en DB) </p>
+              <p className="text-slate-500 font-medium italic">Inventario en DB + Costos en Tiempo Real (Op 11 Bulk)</p>
            </div>
            
            <div className="flex gap-4 w-full md:w-auto">
-              <Button onClick={runLiteSync} disabled={isSyncing} className="bg-blue-600 hover:bg-blue-500 text-white font-black uppercase italic gap-2 h-12 px-6">
-                {isSyncing ? <Loader2 className="animate-spin" /> : <Zap className="fill-white" />}
-                Sync Catálogo Lite
+              <Button onClick={runLiteSync} disabled={isSyncing} className="bg-blue-600 hover:bg-blue-500 text-white font-black uppercase italic gap-2 h-12 px-6 shadow-lg shadow-blue-900/20">
+                {isSyncing ? <Loader2 className="animate-spin" /> : <RefreshCw className="fill-white" />}
+                Sync Catálogo (Solo Stock)
               </Button>
            </div>
         </div>
@@ -228,23 +239,29 @@ export default function FastraxSandbox() {
         {isSyncing && (
           <div className="bg-slate-900 border border-blue-500/30 p-6 rounded-2xl space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-black uppercase text-blue-400">Actualizando Ubicación y Stock</span>
+              <span className="text-xs font-black uppercase text-blue-400 tracking-widest">Sincronizando Disponibilidad y Ubicación</span>
               <span className="text-xs font-mono text-white">{syncProgress}%</span>
             </div>
             <Progress value={syncProgress} className="h-1.5 bg-slate-950" />
+            <p className="text-[10px] text-slate-500 italic">No se guarda costo en DB para garantizar precisión absoluta al cargar la vista.</p>
           </div>
         )}
 
         <Tabs defaultValue="catalog" className="space-y-6">
-          <TabsList className="bg-slate-900 p-1 border border-slate-800 rounded-xl">
-             <TabsTrigger value="catalog" className="data-[state=active]:bg-blue-600 font-black uppercase text-[10px] tracking-widest px-8 py-3">Catálogo Stock &gt; 0</TabsTrigger>
+          <TabsList className="bg-slate-900 p-1 border border-slate-800 rounded-xl h-auto">
+             <TabsTrigger value="catalog" className="data-[state=active]:bg-blue-600 font-black uppercase text-[10px] tracking-widest px-8 py-3">Inventario Local</TabsTrigger>
              <TabsTrigger value="lifecycle" className="data-[state=active]:bg-pink-600 font-black uppercase text-[10px] tracking-widest px-8 py-3">Flujo de Pedidos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="catalog" className="space-y-6">
              <div className="relative group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-blue-500 transition-colors" />
-                <Input placeholder="BUSCAR SKU O NOMBRE..." className="bg-slate-900 border-slate-800 h-16 pl-14 text-lg font-bold" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <Input 
+                  placeholder="FILTRAR POR SKU O NOMBRE..." 
+                  className="bg-slate-900 border-slate-800 h-16 pl-14 text-lg font-bold uppercase placeholder:text-slate-700" 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                />
              </div>
 
              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -253,30 +270,47 @@ export default function FastraxSandbox() {
                   const livePrice = livePrices[product.sku];
 
                   return (
-                    <Card key={product.id} className={`bg-slate-900 border-slate-800 hover:border-blue-500/50 transition-all group cursor-pointer overflow-hidden rounded-2xl flex flex-col ${isOutOfStock ? 'border-red-900/50 bg-red-950/10' : ''}`}>
+                    <Card 
+                      key={product.id} 
+                      className={`bg-slate-900 border-slate-800 hover:border-blue-500/50 transition-all group cursor-pointer overflow-hidden rounded-2xl flex flex-col ${isOutOfStock ? 'opacity-50' : ''}`}
+                      onClick={() => { setSelectedProduct(product); setDetailOpen(true); }}
+                    >
                       <div className="aspect-square bg-slate-950 relative flex items-center justify-center p-4">
-                        <FastraxLiveImage sku={product.sku} className={`w-full h-full ${isOutOfStock ? 'grayscale opacity-50' : ''}`} />
+                        <FastraxLiveImage sku={product.sku} className={`w-full h-full ${isOutOfStock ? 'grayscale' : ''}`} />
                         <div className="absolute top-2 left-2 flex flex-col gap-1">
                           <Badge className="bg-slate-950/80 border-slate-700 text-[8px] font-black py-0 px-2 h-4 uppercase">{product.sku}</Badge>
                           {product.ubicacion && (
-                            <Badge className="bg-blue-600/80 text-[8px] font-black py-0 px-2 h-4 uppercase flex items-center gap-1">
+                            <Badge className="bg-blue-600 text-[8px] font-black py-0 px-2 h-4 uppercase flex items-center gap-1">
                               <MapPin size={8} /> {product.ubicacion}
                             </Badge>
                           )}
                         </div>
                       </div>
                       <CardContent className="p-4 space-y-3 flex-1">
-                        <h3 className={`text-[11px] font-black uppercase line-clamp-2 leading-tight h-8 ${isOutOfStock ? 'text-red-400' : 'text-white'}`}>
-                          {product.nombre}
-                        </h3>
+                        <h3 className="text-[11px] font-black text-white uppercase line-clamp-2 leading-tight h-8">{product.nombre}</h3>
                         <div className="flex items-center justify-between border-t border-slate-800/50 pt-2">
                           <div className="flex flex-col">
-                            <span className="text-[8px] text-slate-500 uppercase font-black">Precio Live</span>
+                            <span className="text-[8px] text-slate-500 uppercase font-black tracking-tighter">Precio Live</span>
                             <span className="text-xs font-black text-emerald-400">
-                              {livePrice ? `₲ ${livePrice.toLocaleString()}` : <span className="animate-pulse text-slate-600">---</span>}
+                              {livePrice ? `₲ ${livePrice.toLocaleString()}` : (
+                                <div className="flex items-center gap-1 animate-pulse">
+                                  <div className="w-1 h-1 bg-slate-700 rounded-full" />
+                                  <div className="w-1 h-1 bg-slate-700 rounded-full" />
+                                  <div className="w-1 h-1 bg-slate-700 rounded-full" />
+                                </div>
+                              )}
                             </span>
                           </div>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-500 hover:bg-blue-500/10" onClick={() => { setOrderSku(product.sku); alert("SKU copiado para pedido"); }}>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-8 w-8 text-blue-500 hover:bg-blue-500/10" 
+                            onClick={(e) => { 
+                              e.stopPropagation();
+                              setOrderSku(product.sku); 
+                              alert("SKU copiado para pedido"); 
+                            }}
+                          >
                             <ShoppingCart size={16} />
                           </Button>
                         </div>
