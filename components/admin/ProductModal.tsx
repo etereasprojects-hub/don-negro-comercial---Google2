@@ -24,7 +24,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-// Comment: Added Edit and DollarSign to imports to fix "Cannot find name" errors.
 import { Plus, LayoutGrid, Eye, MapPin, Loader2, Package, CreditCard, Edit, DollarSign } from "lucide-react";
 
 interface Product {
@@ -161,11 +160,11 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
           if (liveDetails) {
             const merged = {
               ...dbData,
-              nombre: dbData?.nombre || decodeText(liveDetails.nom),
-              descripcion: dbData?.descripcion || decodeText(liveDetails.des || liveDetails.bre),
+              nombre: decodeText(liveDetails.nom),
+              descripcion: decodeText(liveDetails.des || liveDetails.bre),
               costo: Number(liveDetails.pre || dbData?.costo || 0),
-              imagen_url: dbData?.imagen_url || liveImages[0] || "",
-              imagenes_extra: dbData?.imagenes_extra?.length ? dbData.imagenes_extra : liveImages.slice(1),
+              imagen_url: liveImages[0] || dbData?.imagen_url || "",
+              imagenes_extra: liveImages.slice(1).length ? liveImages.slice(1) : (dbData?.imagenes_extra || []),
               sku: productId
             };
             applyProductToForm(merged, true);
@@ -255,29 +254,45 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
     setLoading(true);
 
     try {
-      const finalSlug = formData.url_slug || generateSlug(formData.nombre);
       const isFastrax = formData.source === 'Fastrax';
       const table = isFastrax ? "fastrax_products" : "products";
+      
+      let dataToSave: any = {};
 
-      const dataToSave: any = {
-        nombre: formData.nombre,
-        descripcion: formData.descripcion,
-        categoria: formData.categoria,
-        url_slug: finalSlug,
-        costo: Number(formData.costo),
-        margen_porcentaje: Number(formData.margen_porcentaje),
-        interes_6_meses_porcentaje: Number(formData.interes_6_meses_porcentaje),
-        interes_12_meses_porcentaje: Number(formData.interes_12_meses_porcentaje),
-        interes_15_meses_porcentaje: Number(formData.interes_15_meses_porcentaje),
-        interes_18_meses_porcentaje: Number(formData.interes_18_meses_porcentaje),
-        stock: Number(formData.stock),
-        imagenes_extra: formData.imagenes_extra.filter(i => i.trim() !== ""),
-        destacado: formData.destacado,
-        show_in_hero: formData.show_in_hero,
-        estado: formData.estado,
-        imagen_url: formData.imagen_url,
-        video_url: formData.video_url
-      };
+      if (isFastrax) {
+        // SOLUCIÓN: Solo guardamos los campos que tenemos en fastrax_products
+        dataToSave = {
+          margen_porcentaje: Number(formData.margen_porcentaje),
+          interes_6_meses_porcentaje: Number(formData.interes_6_meses_porcentaje),
+          interes_12_meses_porcentaje: Number(formData.interes_12_meses_porcentaje),
+          interes_15_meses_porcentaje: Number(formData.interes_15_meses_porcentaje),
+          interes_18_meses_porcentaje: Number(formData.interes_18_meses_porcentaje),
+          destacado: formData.destacado,
+          show_in_hero: formData.show_in_hero,
+          updated_at: new Date().toISOString()
+        };
+      } else {
+        const finalSlug = formData.url_slug || generateSlug(formData.nombre);
+        dataToSave = {
+          nombre: formData.nombre,
+          descripcion: formData.descripcion,
+          categoria: formData.categoria,
+          url_slug: finalSlug,
+          costo: Number(formData.costo),
+          margen_porcentaje: Number(formData.margen_porcentaje),
+          interes_6_meses_porcentaje: Number(formData.interes_6_meses_porcentaje),
+          interes_12_meses_porcentaje: Number(formData.interes_12_meses_porcentaje),
+          interes_15_meses_porcentaje: Number(formData.interes_15_meses_porcentaje),
+          interes_18_meses_porcentaje: Number(formData.interes_18_meses_porcentaje),
+          stock: Number(formData.stock),
+          imagenes_extra: formData.imagenes_extra.filter(i => i.trim() !== ""),
+          destacado: formData.destacado,
+          show_in_hero: formData.show_in_hero,
+          estado: formData.estado,
+          imagen_url: formData.imagen_url,
+          video_url: formData.video_url
+        };
+      }
 
       if (isFastrax && (formData.sku || formData.codigo_ext)) {
           const { error } = await supabase.from(table).update(dataToSave).eq("sku", formData.sku || formData.codigo_ext);
@@ -394,12 +409,12 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2 space-y-2">
                       <Label className="font-bold">Nombre Comercial *</Label>
-                      <Input value={formData.nombre} onChange={(e) => handleNombreChange(e.target.value)} required className="h-12 text-lg font-bold" />
+                      <Input value={formData.nombre} onChange={(e) => handleNombreChange(e.target.value)} required disabled={formData.source === 'Fastrax'} className="h-12 text-lg font-bold" />
                     </div>
 
                     <div className="space-y-2">
                       <Label className="font-bold">Categoría *</Label>
-                      <Select value={formData.categoria} onValueChange={(v) => setFormData({ ...formData, categoria: v })}>
+                      <Select value={formData.categoria} onValueChange={(v) => setFormData({ ...formData, categoria: v })} disabled={formData.source === 'Fastrax'}>
                         <SelectTrigger className="h-11"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                         <SelectContent className="max-h-[300px]">
                           {categories.map((cat) => <SelectItem key={cat.id} value={cat.nombre}>{cat.nombre}</SelectItem>)}
@@ -425,6 +440,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                       value={formData.descripcion}
                       onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                       rows={10}
+                      disabled={formData.source === 'Fastrax'}
                       className="font-mono text-[11px] leading-relaxed bg-slate-50 border-slate-200"
                       placeholder="Contenido HTML o texto plano de las especificaciones..."
                     />
@@ -440,7 +456,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <Label className="text-[10px] uppercase font-black text-blue-600">Costo Base (₲)</Label>
-                      <Input type="number" value={formData.costo} onChange={e => setFormData({...formData, costo: e.target.value})} className="h-11 font-black text-base border-2" />
+                      <Input type="number" value={formData.costo} onChange={e => setFormData({...formData, costo: e.target.value})} disabled={formData.source === 'Fastrax'} className="h-11 font-black text-base border-2" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] uppercase font-black text-slate-500">Margen Contado (%)</Label>

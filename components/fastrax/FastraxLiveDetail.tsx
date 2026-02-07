@@ -63,6 +63,15 @@ export default function FastraxLiveDetail({ product, isOpen, onClose }: FastraxL
     try { return decodeURIComponent(t.replace(/\+/g, ' ')); } catch (e) { return t.replace(/\+/g, ' '); }
   };
 
+  // Función para parsear precio de la API
+  const parseLivePrice = (val: any) => {
+    if (!val) return 0;
+    if (typeof val === 'number') return val;
+    // Limpia puntos y comas si vienen en formato PYG string
+    const clean = val.toString().replace(/\./g, '').replace(/,/g, '');
+    return Number(clean) || 0;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-950 border-slate-800 text-slate-100">
@@ -113,7 +122,7 @@ export default function FastraxLiveDetail({ product, isOpen, onClose }: FastraxL
                     <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
                        <p className="text-[10px] text-slate-500 font-black uppercase">Costo Proveedor</p>
                        <p className="text-xl font-black text-emerald-400">
-                         ₲ {Number(details?.pre || product?.costo || 0).toLocaleString()}
+                         ₲ {parseLivePrice(details?.pre || product?.costo).toLocaleString()}
                        </p>
                     </div>
                     <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
