@@ -63,7 +63,6 @@ export default function OwnerFastraxPage() {
 
   const loadDbProducts = async () => {
     setLoading(true);
-    // Cambiado de "products" a "fastrax_products"
     const { data } = await supabase
       .from("fastrax_products")
       .select("*")
@@ -306,7 +305,7 @@ export default function OwnerFastraxPage() {
                              <Button onClick={() => { setSelectedProduct({ sku: p.sku, nombre: p.nombre, costo: p.costo, stock: p.stock, categoria: p.categoria }); setIsDetailOpen(true); }} size="icon" variant="ghost" className="h-8 w-8 text-blue-500 hover:bg-blue-50" title="Consultar API">
                                <Search size={16} />
                              </Button>
-                             <Button onClick={() => { setSelectedProduct(p); setIsModalOpen(true); }} size="icon" variant="ghost" className="h-8 w-8 text-slate-600 hover:bg-slate-100" title="Editar Local">
+                             <Button onClick={() => { setSelectedProduct({ ...p, source: 'Fastrax' }); setIsModalOpen(true); }} size="icon" variant="ghost" className="h-8 w-8 text-slate-600 hover:bg-slate-100" title="Editar Local">
                                <Edit size={16} />
                              </Button>
                              <Button onClick={() => handleDelete(p.sku)} size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-50" title="Eliminar de DB">
@@ -322,6 +321,13 @@ export default function OwnerFastraxPage() {
            </div>
         </div>
       </div>
+
+      <ProductModal 
+        isOpen={isModalOpen} 
+        onClose={() => { setIsModalOpen(false); setSelectedProduct(null); }} 
+        product={selectedProduct} 
+        onSave={loadDbProducts} 
+      />
 
       <BulkEditModal 
         isOpen={isBulkModalOpen} 

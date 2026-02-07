@@ -23,17 +23,17 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-// Comment: Added missing Badge import to fix lines 343 and 345 errors
 import { Badge } from "@/components/ui/badge";
-import { Plus, LayoutGrid, Eye, MapPin } from "lucide-react";
+import { Plus, LayoutGrid, Eye, MapPin, Loader2 } from "lucide-react";
 
 interface Product {
   id?: string;
+  sku?: string;
   nombre: string;
   descripcion: string;
-  codigo_wos: string;
-  codigo_pro: string;
-  codigo_ext: string;
+  codigo_wos?: string;
+  codigo_pro?: string;
+  codigo_ext?: string;
   categoria: string;
   url_slug: string;
   costo: number | string;
@@ -50,7 +50,7 @@ interface Product {
   imagenes_extra?: string[];
   video_url?: string;
   destacado: boolean;
-  show_in_hero: boolean;
+  show_in_hero?: boolean;
   source?: string;
 }
 
@@ -70,6 +70,8 @@ interface ProductModalProps {
 
 export default function ProductModal({ isOpen, onClose, product, onSave }: ProductModalProps) {
   const [formData, setFormData] = useState({
+    id: "",
+    sku: "",
     nombre: "",
     descripcion: "",
     codigo_wos: "",
@@ -98,7 +100,6 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [savingCategory, setSavingCategory] = useState(false);
 
@@ -128,70 +129,36 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
     }
   };
 
-  const handleCreateCategory = async () => {
-    if (!newCategoryName.trim()) {
-      alert("Por favor ingresa un nombre para la categoría");
-      return;
-    }
-
-    setSavingCategory(true);
-    try {
-      const categorySlug = generateSlug(newCategoryName);
-      const maxOrder = categories.length > 0 ? Math.max(...categories.map(c => c.orden || 0)) : 0;
-
-      const { data, error } = await supabase
-        .from("categories")
-        .insert([{
-          nombre: newCategoryName.trim(),
-          slug: categorySlug,
-          activo: true,
-          orden: maxOrder + 1
-        }])
-        .select()
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data) {
-        await loadCategories();
-        setFormData({ ...formData, categoria: newCategoryName.trim() });
-        setNewCategoryName("");
-        setShowCategoryModal(false);
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Error al crear la categoría.");
-    } finally {
-      setSavingCategory(false);
-    }
-  };
-
-  const loadProductData = async (productId: string) => {
+  const loadProductData = async (productId: string, isFastrax: boolean) => {
     setLoadingData(true);
     try {
+      const table = isFastrax ? "fastrax_products" : "products";
       const { data, error } = await supabase
-        .from("products")
+        .from(table)
         .select("*")
-        .eq("id", productId)
+        .eq(isFastrax ? "sku" : "id", productId)
         .maybeSingle();
 
       if (!error && data) {
-        applyProductToForm(data);
+        applyProductToForm(data, isFastrax);
       }
     } finally {
       setLoadingData(false);
     }
   };
 
-  const applyProductToForm = (data: any) => {
+  const applyProductToForm = (data: any, isFastrax: boolean = false) => {
     const imagenesExtra = Array.isArray(data.imagenes_extra) ? data.imagenes_extra : [];
     const paddedImages = [...imagenesExtra, "", "", "", "", ""].slice(0, 5);
 
     setFormData({
+      id: data.id || "",
+      sku: data.sku || "",
       nombre: data.nombre || "",
       descripcion: data.descripcion || "",
       codigo_wos: data.codigo_wos || "",
       codigo_pro: data.codigo_pro || "",
-      codigo_ext: data.codigo_ext || "",
+      codigo_ext: isFastrax ? data.sku : (data.codigo_ext || ""),
       categoria: data.categoria || "",
       url_slug: data.url_slug || "",
       costo: data.costo != null ? Number(data.costo) : 0,
@@ -209,20 +176,25 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
       video_url: data.video_url || "",
       destacado: Boolean(data.destacado),
       show_in_hero: Boolean(data.show_in_hero),
-      source: data.source || ""
+      source: isFastrax ? "Fastrax" : (data.source || "")
     });
   };
 
   useEffect(() => {
     if (isOpen) {
       if (product) {
-        if (product.id) {
-          loadProductData(product.id);
+        const isFastrax = product.source === 'Fastrax';
+        if (isFastrax && product.sku) {
+           loadProductData(product.sku, true);
+        } else if (product.id) {
+          loadProductData(product.id, false);
         } else {
-          applyProductToForm(product);
+          applyProductToForm(product, isFastrax);
         }
       } else {
         setFormData({
+          id: "",
+          sku: "",
           nombre: "",
           descripcion: "",
           codigo_wos: "",
@@ -267,9 +239,12 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
     try {
       const finalSlug = formData.url_slug || generateSlug(formData.nombre);
       const imagenesExtraFiltered = formData.imagenes_extra.filter((img: string) => img.trim() !== "");
+      const isFastrax = formData.source === 'Fastrax';
 
-      const dataToSave = {
-        ...formData,
+      const dataToSave: any = {
+        nombre: formData.nombre,
+        descripcion: formData.descripcion,
+        categoria: formData.categoria,
         url_slug: finalSlug,
         costo: Number(formData.costo),
         margen_porcentaje: Number(formData.margen_porcentaje),
@@ -279,58 +254,64 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
         interes_18_meses_porcentaje: Number(formData.interes_18_meses_porcentaje),
         stock: Number(formData.stock),
         imagenes_extra: imagenesExtraFiltered,
+        destacado: formData.destacado,
+        estado: formData.estado,
+        imagen_url: formData.imagen_url,
+        video_url: formData.video_url
       };
 
-      if (product && product.id) {
-        const { error } = await supabase
-          .from("products")
-          .update({ ...dataToSave, updated_at: new Date().toISOString() })
-          .eq("id", product.id);
-
-        if (error) throw error;
-        alert("Producto actualizado exitosamente");
-      } else {
-        const { error } = await supabase.from("products").insert([dataToSave]);
-        if (error) throw error;
-        alert("Producto creado exitosamente");
+      if (!isFastrax) {
+          dataToSave.codigo_ext = formData.codigo_ext;
+          dataToSave.codigo_wos = formData.codigo_wos;
+          dataToSave.codigo_pro = formData.codigo_pro;
       }
 
+      const table = isFastrax ? "fastrax_products" : "products";
+
+      if (isFastrax && formData.sku) {
+          const { error } = await supabase
+            .from(table)
+            .update({ ...dataToSave, updated_at: new Date().toISOString() })
+            .eq("sku", formData.sku);
+          if (error) throw error;
+      } else if (!isFastrax && formData.id) {
+          const { error } = await supabase
+            .from(table)
+            .update({ ...dataToSave, updated_at: new Date().toISOString() })
+            .eq("id", formData.id);
+          if (error) throw error;
+      } else {
+        const { error } = await supabase.from(table).insert([dataToSave]);
+        if (error) throw error;
+      }
+
+      alert("Producto guardado exitosamente");
       onSave();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Error al guardar el producto.");
+      alert("Error al guardar: " + error.message);
     } finally {
       setLoading(false);
     }
   };
-
-  const calculatedPrices = calculatePrices({
-    costo: Number(formData.costo ?? 0),
-    margen_porcentaje: Number(formData.margen_porcentaje ?? 18),
-    interes_6_meses_porcentaje: Number(formData.interes_6_meses_porcentaje ?? 45),
-    interes_12_meses_porcentaje: Number(formData.interes_12_meses_porcentaje ?? 65),
-    interes_15_meses_porcentaje: Number(formData.interes_15_meses_porcentaje ?? 75),
-    interes_18_meses_porcentaje: Number(formData.interes_18_meses_porcentaje ?? 85),
-  });
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {product?.id ? "Editar Producto" : product ? "Previsualizar Importación" : "Nuevo Producto"}
+            {formData.sku || formData.id ? "Editar Producto" : "Nuevo Producto"}
           </DialogTitle>
         </DialogHeader>
 
         {loadingData ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="animate-spin h-10 w-10 text-blue-600" />
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              {/* Información de Ubicación Fastrax (Solo Lectura Informativa) */}
               {formData.source === 'Fastrax' && (
                 <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
                    <div className="flex items-center gap-3">
@@ -338,12 +319,12 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                          <MapPin size={20} />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Sucursal Fastrax Detectada</p>
+                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Sincronizado vía Fastrax</p>
                         <p className="text-lg font-black text-slate-900">{formData.ubicacion}</p>
                       </div>
                    </div>
-                   <Badge className={`${formData.fastrax_id_sucursal === '3' ? 'bg-blue-600' : 'bg-orange-600'} text-white font-black px-4 py-1 uppercase`}>
-                      {formData.fastrax_id_sucursal === '3' ? 'Entrega 24hs' : 'Entrega 48hs'}
+                   <Badge className="bg-blue-600 text-white font-black px-4 py-1 uppercase">
+                      REF SKU: {formData.sku}
                    </Badge>
                 </div>
               )}
@@ -367,24 +348,14 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                   rows={6}
                   className="font-mono text-xs"
                 />
-                
-                {(formData.descripcion.includes('<table') || formData.descripcion.includes('<div')) && (
-                  <div className="p-4 bg-slate-50 border border-dashed rounded-xl">
-                     <div className="bg-white border rounded-lg p-4 overflow-auto max-h-[300px]">
-                        <div 
-                          className="product-description-html"
-                          dangerouslySetInnerHTML={{ __html: formData.descripcion }}
-                        />
-                     </div>
-                  </div>
-                )}
               </div>
 
               <div>
-                <Label htmlFor="codigo_ext">SKU / Código EXT</Label>
+                <Label htmlFor="codigo_ext">{formData.source === 'Fastrax' ? 'SKU (No Editable)' : 'Código Externo'}</Label>
                 <Input
                   id="codigo_ext"
-                  value={formData.codigo_ext}
+                  value={formData.source === 'Fastrax' ? formData.sku : formData.codigo_ext}
+                  disabled={formData.source === 'Fastrax'}
                   onChange={(e) => setFormData({ ...formData, codigo_ext: e.target.value })}
                 />
               </div>
@@ -399,7 +370,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                     <SelectValue placeholder="Seleccionar..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat) => (
+                    {categories?.map((cat) => (
                       <SelectItem key={cat.id} value={cat.nombre}>{cat.nombre}</SelectItem>
                     ))}
                   </SelectContent>
@@ -435,21 +406,46 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                   onChange={(e) => setFormData({ ...formData, imagen_url: e.target.value })}
                 />
               </div>
+              
+              <div className="col-span-2 border-t pt-4">
+                <h3 className="font-bold text-sm uppercase mb-3">Parámetros Comerciales</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-[10px] uppercase font-bold">Margen (%)</Label>
+                    <Input type="number" value={formData.margen_porcentaje} onChange={e => setFormData({...formData, margen_porcentaje: e.target.value})} />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] uppercase font-bold">Interés 6m (%)</Label>
+                    <Input type="number" value={formData.interes_6_meses_porcentaje} onChange={e => setFormData({...formData, interes_6_meses_porcentaje: e.target.value})} />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] uppercase font-bold">Interés 12m (%)</Label>
+                    <Input type="number" value={formData.interes_12_meses_porcentaje} onChange={e => setFormData({...formData, interes_12_meses_porcentaje: e.target.value})} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-span-2 flex items-center space-x-2 border-t pt-4">
+                <Switch 
+                  id="destacado" 
+                  checked={formData.destacado} 
+                  onCheckedChange={v => setFormData({...formData, destacado: v})} 
+                />
+                <Label htmlFor="destacado">Producto Destacado</Label>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
                 Cerrar
               </Button>
-              {(!product || product.id) && (
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {loading ? "Guardando..." : product?.id ? "Actualizar" : "Crear Producto"}
-                </Button>
-              )}
+              <Button
+                type="submit"
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {loading ? "Guardando..." : "Guardar Cambios"}
+              </Button>
             </div>
           </form>
         )}
