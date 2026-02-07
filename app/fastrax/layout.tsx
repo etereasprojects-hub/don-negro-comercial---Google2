@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Package, ChevronRight, Activity, Terminal, LayoutDashboard, Database, Zap, Search } from 'lucide-react';
+import { Package, ChevronRight, Activity, Terminal, LayoutDashboard, Database, Zap, Search, Beaker } from 'lucide-react';
 
 const operations = [
   { id: 1, name: "Consulta de productos", path: "operacion-1-consulta-productos" },
@@ -56,6 +56,18 @@ export default function FastraxLayout({ children }: { children: React.ReactNode 
           >
             <LayoutDashboard className="w-4 h-4" />
             <span className="font-bold">Dashboard General</span>
+          </Link>
+
+          <Link
+            href="/fastrax/sandbox"
+            className={`flex items-center gap-3 p-3 rounded-lg group transition-all text-sm border ${
+              pathname === '/fastrax/sandbox' 
+                ? 'bg-pink-600 text-white border-pink-500 shadow-lg shadow-pink-900/20' 
+                : 'text-slate-400 hover:bg-slate-900 border-transparent hover:border-slate-800'
+            }`}
+          >
+            <Beaker className={`w-4 h-4 ${pathname === '/fastrax/sandbox' ? 'text-white' : 'text-pink-500'}`} />
+            <span className="font-bold">Sandbox Profesional</span>
           </Link>
 
           <div className="h-4" />

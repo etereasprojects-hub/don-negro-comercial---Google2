@@ -109,14 +109,25 @@ export default function FastraxSandbox() {
   };
 
   const determineLocation = (slj: any[]) => {
-    if (!Array.isArray(slj)) return "Almacén";
-    // Sucursal 3 = Asunción (24hs)
-    const asuStock = slj.find(s => Object.keys(s)[0] === "3")?.["3"] || 0;
-    // Sucursal 1 = Ciudad del Este (48hs)
-    const cdeStock = slj.find(s => Object.keys(s)[0] === "1")?.["1"] || 0;
+    if (!Array.isArray(slj) || slj.length === 0) return "Almacén";
+    
+    let hasAsu = false;
+    let hasCde = false;
 
-    if (Number(asuStock) > 0) return "Asunción";
-    if (Number(cdeStock) > 0) return "Ciudad del Este";
+    slj.forEach(storeObj => {
+      const storeId = Object.keys(storeObj)[0];
+      const stock = Number(storeObj[storeId]);
+      
+      if (stock > 0) {
+        if (storeId === "3") hasAsu = true;
+        if (storeId === "1") hasCde = true;
+      }
+    });
+
+    if (hasAsu && hasCde) return "Asunción / CDE";
+    if (hasAsu) return "Asunción";
+    if (hasCde) return "Ciudad del Este";
+    
     return "Almacén";
   };
 
@@ -283,6 +294,7 @@ export default function FastraxSandbox() {
                       <SelectItem value="all">Todas las Sedes</SelectItem>
                       <SelectItem value="Asunción">Asunción (24hs)</SelectItem>
                       <SelectItem value="Ciudad del Este">Ciudad del Este (48hs)</SelectItem>
+                      <SelectItem value="Asunción / CDE">Ambas Sedes</SelectItem>
                       <SelectItem value="Almacén">Almacén Central</SelectItem>
                     </SelectContent>
                   </Select>
@@ -307,8 +319,8 @@ export default function FastraxSandbox() {
                 {filteredProducts.map((product) => {
                   const isOutOfStock = product.stock <= 0;
                   const livePrice = livePrices[product.sku];
-                  const is24h = product.ubicacion === "Asunción";
-                  const is48h = product.ubicacion === "Ciudad del Este";
+                  const is24h = product.ubicacion?.includes("Asunción");
+                  const is48h = product.ubicacion?.includes("Ciudad del Este");
 
                   return (
                     <Card 
