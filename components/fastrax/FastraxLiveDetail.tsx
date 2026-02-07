@@ -59,7 +59,8 @@ export default function FastraxLiveDetail({ product, isOpen, onClose }: FastraxL
   };
 
   const decodeText = (t: string) => {
-    try { return decodeURIComponent(t.replace(/\+/g, ' ')); } catch (e) { return t; }
+    if (!t) return "";
+    try { return decodeURIComponent(t.replace(/\+/g, ' ')); } catch (e) { return t.replace(/\+/g, ' '); }
   };
 
   return (
@@ -111,7 +112,9 @@ export default function FastraxLiveDetail({ product, isOpen, onClose }: FastraxL
                  <div className="grid grid-cols-2 gap-4">
                     <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
                        <p className="text-[10px] text-slate-500 font-black uppercase">Costo Proveedor</p>
-                       <p className="text-xl font-black text-emerald-400">₲ {Number(product?.costo).toLocaleString()}</p>
+                       <p className="text-xl font-black text-emerald-400">
+                         ₲ {Number(details?.pre || product?.costo || 0).toLocaleString()}
+                       </p>
                     </div>
                     <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
                        <p className="text-[10px] text-slate-500 font-black uppercase">Stock Almacén</p>
@@ -136,8 +139,8 @@ export default function FastraxLiveDetail({ product, isOpen, onClose }: FastraxL
                   <Info className="w-3 h-3" /> Ficha Técnica Directa
                </div>
                <div className="bg-slate-900/30 p-6 rounded-3xl border border-slate-800/50 text-slate-300 text-sm leading-relaxed">
-                  {details?.des ? (
-                    <div className="prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: decodeText(details.des) }} />
+                  {details?.des || details?.bre ? (
+                    <div className="product-description-html" dangerouslySetInnerHTML={{ __html: decodeText(details.des || details.bre) }} />
                   ) : (
                     <p className="italic text-slate-600">No hay descripción detallada disponible en el servidor en este momento.</p>
                   )}
