@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, Plus, Search, Filter, Edit, Trash2, Package, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Upload, Plus, Search, Filter, Edit, Trash2, Package, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import ProductModal from "./ProductModal";
 import BulkEditModal from "./BulkEditModal";
@@ -44,18 +44,12 @@ interface Product {
 export default function ProductsTable() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
-  const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 50;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
-  const [locationFilter, setLocationFilter] = useState("all");
-  const [imageFilter, setImageFilter] = useState("all");
   const [featuredFilter, setFeaturedFilter] = useState("all");
-  const [codeFilter, setCodeFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -65,16 +59,15 @@ export default function ProductsTable() {
 
   useEffect(() => {
     loadProducts();
-  }, [currentPage, categoryFilter, statusFilter, stockFilter, locationFilter, imageFilter, featuredFilter]);
+  }, [categoryFilter, statusFilter, stockFilter, featuredFilter]);
 
   const loadProducts = async () => {
     setLoading(true);
     try {
       let query = supabase
         .from("products")
-        .select("*", { count: "exact" });
+        .select("*");
 
-      // Filtros de base de datos para eficiencia
       if (categoryFilter !== "all") query = query.eq("categoria", categoryFilter);
       if (statusFilter !== "all") query = query.eq("estado", statusFilter);
       if (featuredFilter === "featured") query = query.eq("destacado", true);
@@ -83,29 +76,16 @@ export default function ProductsTable() {
       if (stockFilter === "in-stock") query = query.gt("stock", 0);
       if (stockFilter === "out-of-stock") query = query.eq("stock", 0);
 
-      // Paginación real
-      const from = currentPage * itemsPerPage;
-      const to = from + itemsPerPage - 1;
-
-      const { data, error, count } = await query
-        .order("created_at", { ascending: false })
-        .range(from, to);
+      const { data, error } = await query
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
-      
       setProducts(data || []);
-      setTotalCount(count || 0);
     } catch (error) {
       console.error("Error loading products:", error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSearch = async () => {
-    // Si hay búsqueda por texto, reiniciamos a la página 1 y filtramos
-    setCurrentPage(0);
-    loadProducts();
   };
 
   const handleDelete = async (id: string) => {
@@ -130,11 +110,7 @@ export default function ProductsTable() {
     setCategoryFilter("all");
     setStatusFilter("all");
     setStockFilter("all");
-    setLocationFilter("all");
-    setImageFilter("all");
     setFeaturedFilter("all");
-    setCodeFilter("");
-    setCurrentPage(0);
   };
 
   const toggleProductSelection = (productId: string) => {
@@ -160,7 +136,6 @@ export default function ProductsTable() {
     loadProducts();
   };
 
-  // Filtrado local para búsqueda rápida reactiva (opcional)
   const filteredProducts = products.filter(p => 
     (p.nombre || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
     (p.codigo_ext || "").toLowerCase().includes(searchTerm.toLowerCase())
@@ -170,17 +145,17 @@ export default function ProductsTable() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-slate-700">Productos</h2>
+          <h2 className="text-2xl font-bold text-slate-700">Productos Locales</h2>
           <p className="text-xs text-slate-500 font-medium uppercase tracking-tighter">
-            Mostrando {filteredProducts.length} de {totalCount} productos totales
+            Mostrando {filteredProducts.length} productos registrados
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="gap-2" onClick={() => setIsCSVImportModalOpen(true)}>
             <Upload className="w-4 h-4" /> Importar CSV
           </Button>
-          <Button onClick={handleAdd} className="gap-2 bg-pink-600 hover:bg-pink-700">
-            <Plus className="w-4 h-4" /> Agregar
+          <Button onClick={handleAdd} className="gap-2 bg-pink-600 hover:bg-pink-700 text-white">
+            <Plus className="w-4 h-4" /> Agregar Producto
           </Button>
         </div>
       </div>
@@ -206,7 +181,7 @@ export default function ProductsTable() {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
-              placeholder="Buscar por nombre o SKU..."
+              placeholder="Buscar por nombre o código..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 h-11"
@@ -259,34 +234,25 @@ export default function ProductsTable() {
           </div>
         )}
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed">
-            <colgroup>
-              <col style={{ width: '50px' }} />
-              <col style={{ width: '300px' }} />
-              <col style={{ width: '150px' }} />
-              <col style={{ width: '150px' }} />
-              <col style={{ width: '150px' }} />
-              <col style={{ width: '100px' }} />
-              <col style={{ width: '150px' }} />
-            </colgroup>
+          <table className="w-full">
             <thead className="bg-slate-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3"><Checkbox checked={selectedProducts.size === products.length && products.length > 0} onCheckedChange={toggleAllProducts} /></th>
+                <th className="px-4 py-3 w-12 text-center"><Checkbox checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0} onCheckedChange={toggleAllProducts} /></th>
                 <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase">Producto</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase">Códigos</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase">Código / EXT</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase">Categoría</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase">Precio</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase">Stock</th>
+                <th className="px-4 py-3 text-center text-[10px] font-black text-gray-500 uppercase w-24">Stock</th>
                 <th className="px-4 py-3 text-right text-[10px] font-black text-gray-500 uppercase">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-4 py-4"><Checkbox checked={selectedProducts.has(product.id)} onCheckedChange={() => toggleProductSelection(product.id)} /></td>
+                  <td className="px-4 py-4 text-center"><Checkbox checked={selectedProducts.has(product.id)} onCheckedChange={() => toggleProductSelection(product.id)} /></td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center overflow-hidden shrink-0">
+                      <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center overflow-hidden shrink-0 border">
                         {product.imagen_url ? <img src={product.imagen_url} alt={product.nombre} className="w-full h-full object-contain" /> : <Package className="w-5 h-5 text-gray-400" />}
                       </div>
                       <div className="min-w-0">
@@ -307,7 +273,7 @@ export default function ProductsTable() {
                       interes_18_meses_porcentaje: Number(product.interes_18_meses_porcentaje ?? 85),
                     }).precioContado)}
                   </td>
-                  <td className="px-4 py-4 text-sm font-bold">{product.stock}</td>
+                  <td className="px-4 py-4 text-center font-bold text-sm">{product.stock}</td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex gap-2 justify-end">
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(product)} className="text-blue-600 hover:bg-blue-50"><Edit className="w-4 h-4" /></Button>
@@ -318,33 +284,9 @@ export default function ProductsTable() {
               ))}
             </tbody>
           </table>
-        </div>
-
-        {/* Paginación */}
-        <div className="bg-slate-50 border-t border-gray-200 p-4 flex items-center justify-between">
-          <div className="text-xs text-slate-500 font-bold uppercase">
-            Página {currentPage + 1} de {Math.ceil(totalCount / itemsPerPage)}
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={currentPage === 0 || loading} 
-              onClick={() => setCurrentPage(v => v - 1)}
-              className="h-8 gap-1 font-bold"
-            >
-              <ChevronLeft className="w-4 h-4" /> Anterior
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={(currentPage + 1) * itemsPerPage >= totalCount || loading} 
-              onClick={() => setCurrentPage(v => v + 1)}
-              className="h-8 gap-1 font-bold"
-            >
-              Siguiente <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
+          {filteredProducts.length === 0 && !loading && (
+            <div className="py-20 text-center text-slate-400 font-medium">No se encontraron productos locales.</div>
+          )}
         </div>
       </div>
 

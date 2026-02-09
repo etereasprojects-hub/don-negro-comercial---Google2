@@ -8,6 +8,8 @@ import AdminTabs from "@/components/admin/AdminTabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+// Comment: Added Badge to imports to fix "Cannot find name 'Badge'" errors on lines 297, 299, 345, 347
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Eye, EyeOff, GripVertical, Image as ImageIcon, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, GripVertical, Image as ImageIcon, Upload, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
 interface Banner {
@@ -62,6 +64,7 @@ export default function BannersPage() {
   const [desktopPreview, setDesktopPreview] = useState<string>("");
   const [mobilePreview, setMobilePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const auth = localStorage.getItem("ownerAuth");
@@ -79,16 +82,20 @@ export default function BannersPage() {
   }, [selectedSection, isAuthenticated]);
 
   const loadBanners = async () => {
-    const { data, error } = await supabase
-      .from("banners")
-      .select("*")
-      .eq("section", selectedSection)
-      .order("order", { ascending: true });
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("banners")
+        .select("*")
+        .eq("section", selectedSection)
+        .order("order", { ascending: true });
 
-    if (error) {
-      console.error("Error loading banners:", error);
-    } else {
+      if (error) throw error;
       setBanners(data || []);
+    } catch (e) {
+      console.error("Error loading banners:", e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -118,39 +125,25 @@ export default function BannersPage() {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingBanner(null);
-    setDesktopImageUrl("");
-    setMobileImageUrl("");
-    setLinkUrl("");
-    setIsActive(true);
-    setDesktopFile(null);
-    setMobileFile(null);
-    setDesktopPreview("");
-    setMobilePreview("");
-    setUploadMode("file");
+    setUploading(false);
   };
 
-  // Fixed React namespace error by importing React
   const handleDesktopFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setDesktopFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setDesktopPreview(reader.result as string);
-      };
+      reader.onloadend = () => setDesktopPreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  // Fixed React namespace error by importing React
   const handleMobileFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setMobileFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setMobilePreview(reader.result as string);
-      };
+      reader.onloadend = () => setMobilePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -162,58 +155,46 @@ export default function BannersPage() {
 
     const { error: uploadError } = await supabase.storage
       .from("banners")
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
+      .upload(filePath, file, { cacheControl: "3600", upsert: false });
 
-    if (uploadError) {
-      throw uploadError;
-    }
+    if (uploadError) throw uploadError;
 
     const { data: urlData } = supabase.storage.from("banners").getPublicUrl(filePath);
-
     return urlData.publicUrl;
   };
 
   const handleSave = async () => {
-    let finalDesktopUrl = desktopImageUrl;
-    let finalMobileUrl = mobileImageUrl;
-
+    setUploading(true);
     try {
-      setUploading(true);
+      let finalDesktopUrl = desktopImageUrl;
+      let finalMobileUrl = mobileImageUrl;
 
       if (uploadMode === "file") {
-        if (!desktopFile || !mobileFile) {
-          alert("Por favor selecciona ambas imágenes (desktop y mobile)");
+        if (!editingBanner && (!desktopFile || !mobileFile)) {
+          alert("Por favor selecciona ambas imágenes.");
           setUploading(false);
           return;
         }
-
-        finalDesktopUrl = await uploadFile(desktopFile, "desktop");
-        finalMobileUrl = await uploadFile(mobileFile, "mobile");
-      } else {
-        if (!desktopImageUrl || !mobileImageUrl) {
-          alert("Por favor ingresa ambas URLs de imagen (desktop y mobile)");
-          setUploading(false);
-          return;
-        }
+        if (desktopFile) finalDesktopUrl = await uploadFile(desktopFile, "desktop");
+        if (mobileFile) finalMobileUrl = await uploadFile(mobileFile, "mobile");
       }
+
+      const dataToSave = {
+        section: selectedSection,
+        desktop_image_url: finalDesktopUrl,
+        mobile_image_url: finalMobileUrl,
+        link_url: linkUrl || null,
+        is_active: isActive,
+      };
 
       if (editingBanner) {
         const { error } = await supabase
           .from("banners")
-          .update({
-            desktop_image_url: finalDesktopUrl,
-            mobile_image_url: finalMobileUrl,
-            link_url: linkUrl || null,
-            is_active: isActive,
-          })
+          .update(dataToSave)
           .eq("id", editingBanner.id);
-
         if (error) throw error;
       } else {
-        const maxOrderResult = await supabase
+        const { data: maxOrder } = await supabase
           .from("banners")
           .select("order")
           .eq("section", selectedSection)
@@ -221,25 +202,17 @@ export default function BannersPage() {
           .limit(1)
           .maybeSingle();
 
-        const newOrder = maxOrderResult.data ? maxOrderResult.data.order + 1 : 0;
-
-        const { error } = await supabase.from("banners").insert({
-          section: selectedSection,
-          desktop_image_url: finalDesktopUrl,
-          mobile_image_url: finalMobileUrl,
-          link_url: linkUrl || null,
-          order: newOrder,
-          is_active: isActive,
-        });
-
+        const newOrder = maxOrder ? maxOrder.order + 1 : 0;
+        const { error } = await supabase.from("banners").insert({ ...dataToSave, order: newOrder });
         if (error) throw error;
       }
 
+      alert("Banner guardado exitosamente");
       closeModal();
       loadBanners();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving banner:", error);
-      alert("Error al guardar el banner");
+      alert("Error al guardar: " + error.message);
     } finally {
       setUploading(false);
     }
@@ -247,14 +220,13 @@ export default function BannersPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("¿Estás seguro de eliminar este banner?")) return;
-
-    const { error } = await supabase.from("banners").delete().eq("id", id);
-
-    if (error) {
-      console.error("Error deleting banner:", error);
-      alert("Error al eliminar el banner");
-    } else {
+    try {
+      const { error } = await supabase.from("banners").delete().eq("id", id);
+      if (error) throw error;
       loadBanners();
+    } catch (error: any) {
+      console.error("Error deleting banner:", error);
+      alert("Error al eliminar: " + error.message);
     }
   };
 
@@ -263,23 +235,12 @@ export default function BannersPage() {
       .from("banners")
       .update({ is_active: !banner.is_active })
       .eq("id", banner.id);
-
-    if (error) {
-      console.error("Error toggling banner:", error);
-      alert("Error al cambiar el estado del banner");
-    } else {
-      loadBanners();
-    }
+    if (!error) loadBanners();
   };
 
   const handleReorder = async (bannerId: string, direction: "up" | "down") => {
     const currentIndex = banners.findIndex((b) => b.id === bannerId);
-    if (
-      (direction === "up" && currentIndex === 0) ||
-      (direction === "down" && currentIndex === banners.length - 1)
-    ) {
-      return;
-    }
+    if ((direction === "up" && currentIndex === 0) || (direction === "down" && currentIndex === banners.length - 1)) return;
 
     const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
     const newBanners = [...banners];
@@ -298,306 +259,173 @@ export default function BannersPage() {
       loadBanners();
     } catch (error) {
       console.error("Error reordering banners:", error);
-      alert("Error al reordenar los banners");
     }
   };
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminHeader />
       <AdminTabs activeTab="banners" />
       <div className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
-        <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Banners Publicitarios</h1>
-          <p className="text-gray-600 mt-1">Gestiona los banners publicitarios de tu tienda</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Banners Publicitarios</h1>
+            <p className="text-gray-600 mt-1">Gestiona los sliders y publicidad de secciones específicas.</p>
+          </div>
+          <Button onClick={() => openModal()} className="gap-2 bg-pink-600 hover:bg-pink-700 text-white font-bold h-11 px-6 shadow-lg shadow-pink-900/10">
+            <Plus className="w-4 h-4" />
+            Nuevo Banner
+          </Button>
         </div>
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => openModal()} className="gap-2 bg-pink-600 hover:bg-pink-700">
-              <Plus className="w-4 h-4" />
-              Agregar Banner
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingBanner ? "Editar Banner" : "Agregar Banner"}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Tabs value={uploadMode} onValueChange={(v) => setUploadMode(v as "file" | "url")}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="file">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Subir Archivo
-                  </TabsTrigger>
-                  <TabsTrigger value="url">
-                    <ImageIcon className="w-4 h-4 mr-2" />
-                    Ingresar URL
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="file" className="space-y-4">
-                  <div>
-                    <Label htmlFor="desktop-file">Imagen Desktop (1:8 - horizontal)</Label>
-                    <Input
-                      id="desktop-file"
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                      onChange={handleDesktopFileChange}
-                      className="mt-1"
-                    />
-                    {desktopPreview && (
-                      <div className="mt-2 border rounded-lg overflow-hidden">
-                        <img
-                          src={desktopPreview}
-                          alt="Desktop preview"
-                          className="w-full h-auto"
-                          style={{ maxHeight: "150px", objectFit: "cover" }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="mobile-file">Imagen Mobile (1:2 - horizontal)</Label>
-                    <Input
-                      id="mobile-file"
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                      onChange={handleMobileFileChange}
-                      className="mt-1"
-                    />
-                    {mobilePreview && (
-                      <div className="mt-2 border rounded-lg overflow-hidden max-w-xs mx-auto">
-                        <img
-                          src={mobilePreview}
-                          alt="Mobile preview"
-                          className="w-full h-auto"
-                          style={{ maxHeight: "150px", objectFit: "cover" }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-                <TabsContent value="url" className="space-y-4">
-                  <div>
-                    <Label htmlFor="desktop-image">URL de Imagen Desktop (1:8 - horizontal)</Label>
-                    <Input
-                      id="desktop-image"
-                      placeholder="https://ejemplo.com/banner-desktop.jpg"
-                      value={desktopImageUrl}
-                      onChange={(e) => setDesktopImageUrl(e.target.value)}
-                      className="mt-1"
-                    />
-                    {desktopImageUrl && (
-                      <div className="mt-2 border rounded-lg overflow-hidden">
-                        <img
-                          src={desktopImageUrl}
-                          alt="Desktop preview"
-                          className="w-full h-auto"
-                          style={{ maxHeight: "150px", objectFit: "cover" }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="mobile-image">URL de Imagen Mobile (1:2 - horizontal)</Label>
-                    <Input
-                      id="mobile-image"
-                      placeholder="https://ejemplo.com/banner-mobile.jpg"
-                      value={mobileImageUrl}
-                      onChange={(e) => setMobileImageUrl(e.target.value)}
-                      className="mt-1"
-                    />
-                    {mobileImageUrl && (
-                      <div className="mt-2 border rounded-lg overflow-hidden max-w-xs mx-auto">
-                        <img
-                          src={mobileImageUrl}
-                          alt="Mobile preview"
-                          className="w-full h-auto"
-                          style={{ maxHeight: "150px", objectFit: "cover" }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-              <div>
-                <Label htmlFor="link-url">URL de Enlace (opcional)</Label>
-                <Input
-                  id="link-url"
-                  placeholder="https://ejemplo.com/producto"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  className="mt-1"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Si no hay enlace, el botón no se mostrará en el banner
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch id="is-active" checked={isActive} onCheckedChange={setIsActive} />
-                <Label htmlFor="is-active">Banner activo</Label>
-              </div>
-              <div className="flex gap-2 pt-4">
-                <Button
-                  onClick={handleSave}
-                  className="flex-1 bg-pink-600 hover:bg-pink-700"
-                  disabled={uploading}
-                >
-                  {uploading ? "Subiendo..." : editingBanner ? "Actualizar" : "Agregar"}
-                </Button>
-                <Button onClick={closeModal} variant="outline" className="flex-1" disabled={uploading}>
-                  Cancelar
-                </Button>
-              </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <div className="flex-1">
+              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1.5 block">Sección del Sitio</Label>
+              <Select value={selectedSection} onValueChange={setSelectedSection}>
+                <SelectTrigger className="h-11 font-bold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SECTIONS.map((section) => (
+                    <SelectItem key={section.value} value={section.value}>{section.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <div className="flex items-end h-11">
+               <Badge variant="outline" className="h-full px-4 border-slate-200 text-slate-400 font-bold uppercase tracking-tighter">
+                  {banners.length} Banners registrados
+               </Badge>
+            </div>
+          </div>
+        </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <Label>Sección</Label>
-        <Select value={selectedSection} onValueChange={setSelectedSection}>
-          <SelectTrigger className="mt-2">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SECTIONS.map((section) => (
-              <SelectItem key={section.value} value={section.value}>
-                {section.label}
-              </SelectItem>
+        {loading ? (
+          <div className="py-20 flex flex-col items-center gap-4">
+            <Loader2 className="w-10 h-10 text-pink-600 animate-spin" />
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Consultando base de datos...</p>
+          </div>
+        ) : banners.length === 0 ? (
+          <Card className="border-dashed border-2 bg-slate-50">
+            <CardContent className="py-20 text-center">
+              <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 font-bold uppercase text-xs tracking-widest">No hay banners en esta sección</p>
+              <Button variant="link" onClick={() => openModal()} className="text-pink-600 font-black uppercase text-[10px] mt-2">Crear mi primer banner</Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4 pb-20">
+            {banners.map((banner, index) => (
+              <Card key={banner.id} className="group hover:shadow-md transition-shadow border-slate-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                    <div className="flex flex-row md:flex-col gap-1 shrink-0">
+                      <Button variant="ghost" size="sm" onClick={() => handleReorder(banner.id, "up")} disabled={index === 0} className="h-8 w-8 p-0"><GripVertical className="w-4 h-4 text-slate-400" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleReorder(banner.id, "down")} disabled={index === banners.length - 1} className="h-8 w-8 p-0"><GripVertical className="w-4 h-4 text-slate-400" /></Button>
+                    </div>
+
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vista Escritorio</p>
+                        <div className="aspect-[8/1] bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                          <img src={banner.desktop_image_url} alt="Desktop" className="w-full h-full object-cover" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vista Móvil</p>
+                        <div className="aspect-[2/1] md:aspect-[4/1] bg-slate-100 rounded-lg overflow-hidden border border-slate-200 w-full md:max-w-[200px]">
+                          <img src={banner.mobile_image_url} alt="Mobile" className="w-full h-full object-cover" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-row md:flex-col items-center md:items-end gap-3 shrink-0 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0">
+                      <div className="flex-1 md:flex-none">
+                         <Badge className={`font-black tracking-tighter ${banner.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                           {banner.is_active ? "VISIBLE" : "OCULTO"}
+                         </Badge>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <Button variant="outline" size="sm" onClick={() => handleToggleActive(banner)} title="Ocultar/Mostrar">{banner.is_active ? <EyeOff size={14} /> : <Eye size={14} />}</Button>
+                        <Button variant="outline" size="sm" onClick={() => openModal(banner)} className="text-blue-600"><Edit size={14} /></Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDelete(banner.id)} className="text-red-600 hover:bg-red-50"><Trash2 size={14} /></Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
-          </SelectContent>
-        </Select>
+          </div>
+        )}
       </div>
 
-      {banners.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No hay banners en esta sección</p>
-            <p className="text-sm text-gray-500 mt-2">
-              Agrega un banner para comenzar a mostrar publicidad
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {banners.map((banner, index) => (
-            <Card key={banner.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-4">
-                  <div className="flex flex-col gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleReorder(banner.id, "up")}
-                      disabled={index === 0}
-                      className="p-1 h-auto"
-                    >
-                      <GripVertical className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleReorder(banner.id, "down")}
-                      disabled={index === banners.length - 1}
-                      className="p-1 h-auto"
-                    >
-                      <GripVertical className="w-4 h-4" />
-                    </Button>
-                  </div>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 uppercase italic font-black">
+              {editingBanner ? "Actualizar Banner" : "Registrar Banner"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <Tabs value={uploadMode} onValueChange={(v) => setUploadMode(v as "file" | "url")}>
+              <TabsList className="grid w-full grid-cols-2 h-12 bg-slate-100">
+                <TabsTrigger value="file" className="font-bold">Subir Archivos</TabsTrigger>
+                <TabsTrigger value="url" className="font-bold">Usar URLs Externas</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="file" className="space-y-4 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <Label className="text-xs font-bold uppercase text-slate-500">Imagen Desktop (PNG/JPG)</Label>
+                     <Input type="file" accept="image/*" onChange={handleDesktopFileChange} className="cursor-pointer" />
+                     {desktopPreview && <img src={desktopPreview} className="mt-2 h-20 w-full object-cover rounded border" />}
+                   </div>
+                   <div className="space-y-2">
+                     <Label className="text-xs font-bold uppercase text-slate-500">Imagen Mobile (PNG/JPG)</Label>
+                     <Input type="file" accept="image/*" onChange={handleMobileFileChange} className="cursor-pointer" />
+                     {mobilePreview && <img src={mobilePreview} className="mt-2 h-20 w-full object-cover rounded border" />}
+                   </div>
+                </div>
+              </TabsContent>
 
-                  <div className="flex-1 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-2">Desktop</p>
-                      <div className="border rounded-lg overflow-hidden">
-                        <img
-                          src={banner.desktop_image_url}
-                          alt="Desktop banner"
-                          className="w-full h-auto"
-                          style={{ maxHeight: "100px", objectFit: "cover" }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-2">Mobile</p>
-                      <div className="border rounded-lg overflow-hidden max-w-xs">
-                        <img
-                          src={banner.mobile_image_url}
-                          alt="Mobile banner"
-                          className="w-full h-auto"
-                          style={{ maxHeight: "100px", objectFit: "cover" }}
-                        />
-                      </div>
-                    </div>
+              <TabsContent value="url" className="space-y-4 pt-4">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-xs font-bold uppercase text-slate-500">URL Imagen Desktop</Label>
+                    <Input placeholder="https://..." value={desktopImageUrl} onChange={(e) => setDesktopImageUrl(e.target.value)} className="h-11" />
                   </div>
-
-                  <div className="flex flex-col items-end gap-2 min-w-[200px]">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full ${
-                          banner.is_active
-                            ? "bg-green-100 text-green-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {banner.is_active ? "Activo" : "Inactivo"}
-                      </span>
-                    </div>
-                    {banner.link_url && (
-                      <a
-                        href={banner.link_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline truncate max-w-full"
-                      >
-                        {banner.link_url}
-                      </a>
-                    )}
-                    <div className="flex gap-2 mt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleToggleActive(banner)}
-                        className="gap-2"
-                      >
-                        {banner.is_active ? (
-                          <EyeOff className="w-4 h-4" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openModal(banner)}
-                        className="gap-2 text-blue-600 hover:text-blue-700"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(banner.id)}
-                        className="gap-2 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                  <div>
+                    <Label className="text-xs font-bold uppercase text-slate-500">URL Imagen Mobile</Label>
+                    <Input placeholder="https://..." value={mobileImageUrl} onChange={(e) => setMobileImageUrl(e.target.value)} className="h-11" />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-      </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="space-y-4 border-t pt-4">
+              <div>
+                <Label className="text-xs font-bold uppercase text-slate-500">Enlace de Destino (Opcional)</Label>
+                <Input placeholder="https://donegro.com/categoria/ofertas" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} className="h-11" />
+              </div>
+              <div className="flex items-center space-x-2 bg-slate-50 p-4 rounded-xl border">
+                <Switch id="is-active-modal" checked={isActive} onCheckedChange={setIsActive} className="data-[state=checked]:bg-pink-600" />
+                <Label htmlFor="is-active-modal" className="font-bold cursor-pointer">Activar inmediatamente</Label>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button onClick={handleSave} disabled={uploading} className="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-black h-12">
+                {uploading ? <Loader2 className="animate-spin mr-2" /> : null}
+                {editingBanner ? "ACTUALIZAR CAMBIOS" : "GUARDAR BANNER"}
+              </Button>
+              <Button onClick={() => setIsModalOpen(false)} variant="outline" className="h-12 px-8 font-bold">CANCELAR</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
