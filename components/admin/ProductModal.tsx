@@ -101,6 +101,11 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
 
+  // New Category Modal State
+  const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
+
   const generateSlug = (text: string): string => {
     return text
       .toLowerCase()
@@ -127,6 +132,32 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
       .eq("activo", true)
       .order("orden", { ascending: true });
     if (data) setCategories(data);
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    setCreatingCategory(true);
+    try {
+      const slug = generateSlug(newCategoryName);
+      // Get max order
+      const { data: maxData } = await supabase.from("categories").select("orden").order("orden", { ascending: false }).limit(1).maybeSingle();
+      const nextOrder = (maxData?.orden || 0) + 1;
+
+      const { error } = await supabase.from("categories").insert([
+        { nombre: newCategoryName, slug, orden: nextOrder, activo: true }
+      ]);
+      
+      if (error) throw error;
+      
+      await loadCategories();
+      setFormData(prev => ({ ...prev, categoria: newCategoryName }));
+      setNewCategoryName("");
+      setIsNewCategoryOpen(false);
+    } catch (e: any) {
+      alert("Error al crear categoría: " + e.message);
+    } finally {
+      setCreatingCategory(false);
+    }
   };
 
   const loadProductData = async (productId: string, isFastrax: boolean) => {
@@ -325,195 +356,235 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
   });
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {formData.sku || formData.id ? <Edit className="w-5 h-5 text-blue-600" /> : <Plus className="w-5 h-5 text-emerald-600" />}
-            {formData.sku || formData.id ? "Edición de Producto Comercial" : "Registrar Nuevo Producto"}
-          </DialogTitle>
-          <DialogDescription>
-            Configura los precios, financiación y detalles visuales del catálogo.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {formData.sku || formData.id ? <Edit className="w-5 h-5 text-blue-600" /> : <Plus className="w-5 h-5 text-emerald-600" />}
+              {formData.sku || formData.id ? "Edición de Producto Comercial" : "Registrar Nuevo Producto"}
+            </DialogTitle>
+            <DialogDescription>
+              Configura los precios, financiación y detalles visuales del catálogo.
+            </DialogDescription>
+          </DialogHeader>
 
-        {loadingData ? (
-          <div className="py-20 flex flex-col items-center gap-4">
-            <Loader2 className="animate-spin h-10 w-10 text-blue-600" />
-            <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Consultando Servidor...</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-8 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              
-              {/* Columna Izquierda: Activos y Precios */}
-              <div className="md:col-span-1 space-y-6">
-                 <div className="aspect-square bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden p-6 shadow-inner relative group">
-                    {formData.imagen_url ? (
-                      <img src={formData.imagen_url} className="w-full h-full object-contain transition-transform group-hover:scale-105" alt="Preview" />
-                    ) : (
-                      <Package className="text-slate-200 w-20 h-20" />
-                    )}
-                    <Badge className="absolute top-4 right-4 bg-slate-900/80 text-white font-mono">{formData.sku || 'N/A'}</Badge>
-                 </div>
-                 
-                 <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
-                       <LayoutGrid className="w-3 h-3" /> Galería Complementaria
-                    </Label>
-                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                      {formData.imagenes_extra.map((img, i) => img && (
-                        <div key={i} className="w-16 h-16 rounded-xl border bg-white shrink-0 overflow-hidden shadow-sm hover:border-blue-400 transition-colors">
-                           <img src={img} className="w-full h-full object-contain p-1" alt="extra" />
-                        </div>
-                      ))}
-                    </div>
-                 </div>
-
-                 {/* Card de Precios Dinámicos */}
-                 <div className="bg-slate-950 rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl">
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white">
-                       <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Precio Contado (Calculado)</p>
-                       <p className="text-3xl font-black">{formatCurrency(currentPrices.precioContado)}</p>
-                    </div>
-                    <div className="p-5 space-y-4">
-                       <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                          <CreditCard className="w-3 h-3 text-emerald-400" /> Breakdown Financiación
-                       </h4>
-                       <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-                             <span className="text-[9px] text-slate-500 font-bold uppercase">6 Meses</span>
-                             <p className="text-sm font-black text-white">{formatCurrency(currentPrices.cuota6Meses)}</p>
-                          </div>
-                          <div className="bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-                             <span className="text-[9px] text-slate-500 font-bold uppercase">12 Meses</span>
-                             <p className="text-sm font-black text-white">{formatCurrency(currentPrices.cuota12Meses)}</p>
-                          </div>
-                          <div className="bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-                             <span className="text-[9px] text-slate-500 font-bold uppercase">15 Meses</span>
-                             <p className="text-sm font-black text-white">{formatCurrency(currentPrices.cuota15Meses)}</p>
-                          </div>
-                          <div className="bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-                             <span className="text-[9px] text-slate-500 font-bold uppercase">18 Meses</span>
-                             <p className="text-sm font-black text-white">{formatCurrency(currentPrices.cuota18Meses)}</p>
-                          </div>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-
-              {/* Columna Derecha: Formulario Detallado */}
-              <div className="md:col-span-2 space-y-8">
-                {/* Información Básica */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2 space-y-2">
-                      <Label className="font-bold">Nombre Comercial *</Label>
-                      <Input value={formData.nombre} onChange={(e) => handleNombreChange(e.target.value)} required disabled={formData.source === 'Fastrax'} className="h-12 text-lg font-bold" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="font-bold">Categoría *</Label>
-                      <Select value={formData.categoria} onValueChange={(v) => setFormData({ ...formData, categoria: v })} disabled={formData.source === 'Fastrax'}>
-                        <SelectTrigger className="h-11"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          {categories.map((cat) => <SelectItem key={cat.id} value={cat.nombre}>{cat.nombre}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="font-bold">Estado del Producto</Label>
-                      <Select value={formData.estado} onValueChange={(v) => setFormData({ ...formData, estado: v })}>
-                        <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Activo">Activo (Visible)</SelectItem>
-                          <SelectItem value="Inactivo">Inactivo (Oculto)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="font-bold">Descripción / Ficha Técnica</Label>
-                    <Textarea
-                      value={formData.descripcion}
-                      onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                      rows={10}
-                      disabled={formData.source === 'Fastrax'}
-                      className="font-mono text-[11px] leading-relaxed bg-slate-50 border-slate-200"
-                      placeholder="Contenido HTML o texto plano de las especificaciones..."
-                    />
-                  </div>
-                </div>
-
-                {/* Configuración Comercial Expandida */}
-                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-6">
-                  <h3 className="font-black text-xs uppercase text-slate-500 tracking-widest flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-blue-600" /> Parámetros de Rentabilidad y Crédito
-                  </h3>
-                  
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black text-blue-600">Costo Base (₲)</Label>
-                      <Input type="number" value={formData.costo} onChange={e => setFormData({...formData, costo: e.target.value})} disabled={formData.source === 'Fastrax'} className="h-11 font-black text-base border-2" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black text-slate-500">Margen Contado (%)</Label>
-                      <Input type="number" value={formData.margen_porcentaje} onChange={e => setFormData({...formData, margen_porcentaje: e.target.value})} className="h-11 font-bold border-2" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black text-indigo-600">Interés 6 Meses (%)</Label>
-                      <Input type="number" value={formData.interes_6_meses_porcentaje} onChange={e => setFormData({...formData, interes_6_meses_porcentaje: e.target.value})} className="h-11 font-bold border-2 border-indigo-100" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black text-indigo-600">Interés 12 Meses (%)</Label>
-                      <Input type="number" value={formData.interes_12_meses_porcentaje} onChange={e => setFormData({...formData, interes_12_meses_porcentaje: e.target.value})} className="h-11 font-bold border-2 border-indigo-100" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black text-indigo-600">Interés 15 Meses (%)</Label>
-                      <Input type="number" value={formData.interes_15_meses_porcentaje} onChange={e => setFormData({...formData, interes_15_meses_porcentaje: e.target.value})} className="h-11 font-bold border-2 border-indigo-100" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black text-indigo-600">Interés 18 Meses (%)</Label>
-                      <Input type="number" value={formData.interes_18_meses_porcentaje} onChange={e => setFormData({...formData, interes_18_meses_porcentaje: e.target.value})} className="h-11 font-bold border-2 border-indigo-100" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Flags de Visibilidad */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border shadow-sm">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="destacado" className="font-black text-slate-800">Producto Destacado</Label>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Aparecer en grilla "Top Choice"</p>
-                    </div>
-                    <Switch id="destacado" checked={formData.destacado} onCheckedChange={v => setFormData({...formData, destacado: v})} />
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border shadow-sm">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="show_in_hero" className="font-black text-slate-800">Slider Principal (Hero)</Label>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Promocionar en encabezado</p>
-                    </div>
-                    <Switch id="show_in_hero" checked={formData.show_in_hero} onCheckedChange={v => setFormData({...formData, show_in_hero: v})} />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-8 border-t">
-                  <Button type="button" variant="outline" onClick={onClose} disabled={loading} className="h-12 px-8 uppercase font-black text-xs tracking-widest">
-                    Descartar
-                  </Button>
-                  <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-12 px-10 uppercase font-black text-xs tracking-widest shadow-lg shadow-blue-900/20">
-                    {loading ? <Loader2 className="animate-spin mr-2 w-4 h-4" /> : null}
-                    {loading ? "Guardando..." : "Confirmar Cambios"}
-                  </Button>
-                </div>
-              </div>
+          {loadingData ? (
+            <div className="py-20 flex flex-col items-center gap-4">
+              <Loader2 className="animate-spin h-10 w-10 text-blue-600" />
+              <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Consultando Servidor...</p>
             </div>
-          </form>
-        )}
-      </DialogContent>
-    </Dialog>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-8 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                {/* Columna Izquierda: Activos y Precios */}
+                <div className="md:col-span-1 space-y-6">
+                   <div className="aspect-square bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden p-6 shadow-inner relative group">
+                      {formData.imagen_url ? (
+                        <img src={formData.imagen_url} className="w-full h-full object-contain transition-transform group-hover:scale-105" alt="Preview" />
+                      ) : (
+                        <Package className="text-slate-200 w-20 h-20" />
+                      )}
+                      <Badge className="absolute top-4 right-4 bg-slate-900/80 text-white font-mono">{formData.sku || 'N/A'}</Badge>
+                   </div>
+                   
+                   <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                         <LayoutGrid className="w-3 h-3" /> Galería Complementaria
+                      </Label>
+                      <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                        {formData.imagenes_extra.map((img, i) => img && (
+                          <div key={i} className="w-16 h-16 rounded-xl border bg-white shrink-0 overflow-hidden shadow-sm hover:border-blue-400 transition-colors">
+                             <img src={img} className="w-full h-full object-contain p-1" alt="extra" />
+                          </div>
+                        ))}
+                      </div>
+                   </div>
+
+                   {/* Card de Precios Dinámicos */}
+                   <div className="bg-slate-950 rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl">
+                      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white">
+                         <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Precio Contado (Calculado)</p>
+                         <p className="text-3xl font-black">{formatCurrency(currentPrices.precioContado)}</p>
+                      </div>
+                      <div className="p-5 space-y-4">
+                         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <CreditCard className="w-3 h-3 text-emerald-400" /> Breakdown Financiación
+                         </h4>
+                         <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                               <span className="text-[9px] text-slate-500 font-bold uppercase">6 Meses</span>
+                               <p className="text-sm font-black text-white">{formatCurrency(currentPrices.cuota6Meses)}</p>
+                            </div>
+                            <div className="bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                               <span className="text-[9px] text-slate-500 font-bold uppercase">12 Meses</span>
+                               <p className="text-sm font-black text-white">{formatCurrency(currentPrices.cuota12Meses)}</p>
+                            </div>
+                            <div className="bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                               <span className="text-[9px] text-slate-500 font-bold uppercase">15 Meses</span>
+                               <p className="text-sm font-black text-white">{formatCurrency(currentPrices.cuota15Meses)}</p>
+                            </div>
+                            <div className="bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                               <span className="text-[9px] text-slate-500 font-bold uppercase">18 Meses</span>
+                               <p className="text-sm font-black text-white">{formatCurrency(currentPrices.cuota18Meses)}</p>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Columna Derecha: Formulario Detallado */}
+                <div className="md:col-span-2 space-y-8">
+                  {/* Información Básica */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2 space-y-2">
+                        <Label className="font-bold">Nombre Comercial *</Label>
+                        <Input value={formData.nombre} onChange={(e) => handleNombreChange(e.target.value)} required disabled={formData.source === 'Fastrax'} className="h-12 text-lg font-bold" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                           <Label className="font-bold">Categoría *</Label>
+                           {/* Botón para agregar nueva categoría */}
+                           <Button 
+                             type="button" 
+                             variant="ghost" 
+                             size="sm" 
+                             className="h-6 text-[10px] font-bold uppercase text-blue-600 hover:bg-blue-50"
+                             onClick={() => setIsNewCategoryOpen(true)}
+                             disabled={formData.source === 'Fastrax'}
+                           >
+                             <Plus className="w-3 h-3 mr-1" /> Nueva
+                           </Button>
+                        </div>
+                        <Select value={formData.categoria} onValueChange={(v) => setFormData({ ...formData, categoria: v })} disabled={formData.source === 'Fastrax'}>
+                          <SelectTrigger className="h-11"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                          <SelectContent className="max-h-[300px]">
+                            {categories.map((cat) => <SelectItem key={cat.id} value={cat.nombre}>{cat.nombre}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="font-bold">Estado del Producto</Label>
+                        <Select value={formData.estado} onValueChange={(v) => setFormData({ ...formData, estado: v })}>
+                          <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Activo">Activo (Visible)</SelectItem>
+                            <SelectItem value="Inactivo">Inactivo (Oculto)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="font-bold">Descripción / Ficha Técnica</Label>
+                      <Textarea
+                        value={formData.descripcion}
+                        onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                        rows={10}
+                        disabled={formData.source === 'Fastrax'}
+                        className="font-mono text-[11px] leading-relaxed bg-slate-50 border-slate-200"
+                        placeholder="Contenido HTML o texto plano de las especificaciones..."
+                      />
+                    </div>
+                  </div>
+
+                  {/* Configuración Comercial Expandida */}
+                  <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-6">
+                    <h3 className="font-black text-xs uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-blue-600" /> Parámetros de Rentabilidad y Crédito
+                    </h3>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-black text-blue-600">Costo Base (₲)</Label>
+                        <Input type="number" value={formData.costo} onChange={e => setFormData({...formData, costo: e.target.value})} disabled={formData.source === 'Fastrax'} className="h-11 font-black text-base border-2" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-black text-slate-500">Margen Contado (%)</Label>
+                        <Input type="number" value={formData.margen_porcentaje} onChange={e => setFormData({...formData, margen_porcentaje: e.target.value})} className="h-11 font-bold border-2" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-black text-indigo-600">Interés 6 Meses (%)</Label>
+                        <Input type="number" value={formData.interes_6_meses_porcentaje} onChange={e => setFormData({...formData, interes_6_meses_porcentaje: e.target.value})} className="h-11 font-bold border-2 border-indigo-100" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-black text-indigo-600">Interés 12 Meses (%)</Label>
+                        <Input type="number" value={formData.interes_12_meses_porcentaje} onChange={e => setFormData({...formData, interes_12_meses_porcentaje: e.target.value})} className="h-11 font-bold border-2 border-indigo-100" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-black text-indigo-600">Interés 15 Meses (%)</Label>
+                        <Input type="number" value={formData.interes_15_meses_porcentaje} onChange={e => setFormData({...formData, interes_15_meses_porcentaje: e.target.value})} className="h-11 font-bold border-2 border-indigo-100" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-black text-indigo-600">Interés 18 Meses (%)</Label>
+                        <Input type="number" value={formData.interes_18_meses_porcentaje} onChange={e => setFormData({...formData, interes_18_meses_porcentaje: e.target.value})} className="h-11 font-bold border-2 border-indigo-100" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Flags de Visibilidad */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                    <div className="flex items-center justify-between p-4 bg-white rounded-2xl border shadow-sm">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="destacado" className="font-black text-slate-800">Producto Destacado</Label>
+                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Aparecer en grilla "Top Choice"</p>
+                      </div>
+                      <Switch id="destacado" checked={formData.destacado} onCheckedChange={v => setFormData({...formData, destacado: v})} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 bg-white rounded-2xl border shadow-sm">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="show_in_hero" className="font-black text-slate-800">Slider Principal (Hero)</Label>
+                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Promocionar en encabezado</p>
+                      </div>
+                      <Switch id="show_in_hero" checked={formData.show_in_hero} onCheckedChange={v => setFormData({...formData, show_in_hero: v})} />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-8 border-t">
+                    <Button type="button" variant="outline" onClick={onClose} disabled={loading} className="h-12 px-8 uppercase font-black text-xs tracking-widest">
+                      Descartar
+                    </Button>
+                    <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-12 px-10 uppercase font-black text-xs tracking-widest shadow-lg shadow-blue-900/20">
+                      {loading ? <Loader2 className="animate-spin mr-2 w-4 h-4" /> : null}
+                      {loading ? "Guardando..." : "Confirmar Cambios"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* New Category Modal */}
+      <Dialog open={isNewCategoryOpen} onOpenChange={setIsNewCategoryOpen}>
+         <DialogContent>
+            <DialogHeader>
+               <DialogTitle>Nueva Categoría</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+               <div className="space-y-2">
+                  <Label>Nombre de la Categoría</Label>
+                  <Input 
+                     value={newCategoryName} 
+                     onChange={e => setNewCategoryName(e.target.value)} 
+                     placeholder="Ej: Televisores"
+                  />
+               </div>
+               <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsNewCategoryOpen(false)}>Cancelar</Button>
+                  <Button onClick={handleCreateCategory} disabled={creatingCategory || !newCategoryName.trim()}>
+                     {creatingCategory ? "Guardando..." : "Crear Categoría"}
+                  </Button>
+               </div>
+            </div>
+         </DialogContent>
+      </Dialog>
+    </>
   );
 }
