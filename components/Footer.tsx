@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Facebook, Instagram, Phone, Mail, MapPin, Twitter } from 'lucide-react';
+import { Facebook, Instagram, Phone, Mail, MapPin, Twitter, Navigation } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { FaTiktok, FaReddit, FaLinkedin, FaYoutube, FaWhatsapp } from 'react-icons/fa';
 
@@ -160,7 +161,7 @@ export default function Footer() {
     <>
       <footer className="bg-[#2E3A52] text-white py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             <div>
               {config?.logo_url ? (
                 <img src={config.logo_url} alt={config.store_name} className="h-16 object-contain mb-4" />
@@ -288,6 +289,32 @@ export default function Footer() {
                   </li>
                 )}
               </ul>
+            </div>
+
+            {/* Map Column */}
+            <div className="flex flex-col gap-4">
+                <h4 className="text-lg font-semibold mb-2">Nuestra Ubicación</h4>
+                <div className="rounded-xl overflow-hidden border border-slate-600 h-48 w-full shadow-lg relative bg-slate-800">
+                   <iframe 
+                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3607.636058160345!2d-57.638152899999994!3d-25.282825499999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x945da7e2ccc417eb%3A0x747fad4d0f6597e!2sDon%20negro%20comercial!5e0!3m2!1ses!2spy!4v1771533366613!5m2!1ses!2spy" 
+                     width="100%" 
+                     height="100%" 
+                     style={{ border: 0 }} 
+                     allowFullScreen={true} 
+                     loading="lazy" 
+                     referrerPolicy="no-referrer-when-downgrade"
+                   />
+                </div>
+                
+                <a 
+                  href="https://www.google.com/maps/dir/?api=1&destination=-25.2828255,-57.6381529"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#D91E7A] hover:bg-[#C21668] text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 shadow-md hover:shadow-lg text-sm uppercase tracking-wider"
+                >
+                  <Navigation size={18} />
+                  Navegar con GPS
+                </a>
             </div>
           </div>
 
