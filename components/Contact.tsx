@@ -1,41 +1,17 @@
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Phone, Mail, Clock, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 
-interface StoreConfig {
-  store_name: string;
-  email: string | null;
-}
-
-interface Location {
-  id: string;
-  name: string;
-  address: string;
-  phone: string | null;
-}
-
-interface StoreHours {
-  id: string;
-  day_of_week: number;
-  open_time: string | null;
-  close_time: string | null;
-  is_closed: boolean;
-}
-
-const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-
 export default function Contact() {
   const { toast } = useToast();
-  const [config, setConfig] = useState<StoreConfig | null>(null);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [hours, setHours] = useState<StoreHours[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -49,54 +25,6 @@ export default function Contact() {
     date: '',
     time: '',
   });
-
-  useEffect(() => {
-    loadConfiguration();
-    loadLocations();
-    loadHours();
-  }, []);
-
-  const loadConfiguration = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('store_configuration')
-        .select('store_name, email')
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data) setConfig(data);
-    } catch (error) {
-      console.error('Error loading configuration:', error);
-    }
-  };
-
-  const loadLocations = async () => {
-    try {
-      const { data, error = null } = await supabase
-        .from('store_locations')
-        .select('*')
-        .order('created_at');
-
-      if (error) throw error;
-      if (data) setLocations(data);
-    } catch (error) {
-      console.error('Error loading locations:', error);
-    }
-  };
-
-  const loadHours = async () => {
-    try {
-      const { data, error = null } = await supabase
-        .from('store_hours')
-        .select('*')
-        .order('day_of_week');
-
-      if (error) throw error;
-      if (data) setHours(data);
-    } catch (error) {
-      console.error('Error loading hours:', error);
-    }
-  };
 
   // Fixed React namespace error by importing React
   const handleSubmit = async (e: React.FormEvent) => {
@@ -357,64 +285,6 @@ export default function Contact() {
                     Agendar Visita
                   </Button>
                 </form>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-lg bg-gradient-to-br from-[#D91E7A] to-[#6B4199] text-white">
-              <CardContent className="pt-6 space-y-4">
-                {config?.email && (
-                  <div className="flex items-start gap-3">
-                    <Mail className="mt-1 flex-shrink-0" size={20} />
-                    <div>
-                      <h4 className="font-semibold mb-1">Email</h4>
-                      <p className="text-white/90">{config.email}</p>
-                    </div>
-                  </div>
-                )}
-
-                {locations.length > 0 ? (
-                  locations.map((location) => (
-                    <div key={location.id} className="border-t border-white/20 pt-4 first:border-t-0 first:pt-0">
-                      <div className="flex items-start gap-3 mb-3">
-                        <MapPin className="mt-1 flex-shrink-0" size={20} />
-                        <div>
-                          <h4 className="font-semibold mb-1">{location.name}</h4>
-                          <p className="text-white/90">{location.address}</p>
-                        </div>
-                      </div>
-                      {location.phone && (
-                        <div className="flex items-start gap-3 ml-8">
-                          <Phone className="mt-1 flex-shrink-0" size={20} />
-                          <div>
-                            <h4 className="font-semibold mb-1">Teléfono</h4>
-                            <p className="text-white/90">{location.phone}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center text-white/80 py-4">
-                    No hay ubicaciones configuradas
-                  </div>
-                )}
-
-                {hours.length > 0 && (
-                  <div className="flex items-start gap-3 border-t border-white/20 pt-4">
-                    <Clock className="mt-1 flex-shrink-0" size={20} />
-                    <div>
-                      <h4 className="font-semibold mb-1">Horario</h4>
-                      {hours.map((hour) => (
-                        <p key={hour.id} className="text-white/90">
-                          {daysOfWeek[hour.day_of_week]}:{' '}
-                          {hour.is_closed
-                            ? 'Cerrado'
-                            : `${hour.open_time} - ${hour.close_time}`}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
