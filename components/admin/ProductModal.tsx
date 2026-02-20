@@ -80,11 +80,11 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
     categoria: "",
     url_slug: "",
     costo: 0,
-    margen_porcentaje: 18,
-    interes_6_meses_porcentaje: 45,
-    interes_12_meses_porcentaje: 65,
-    interes_15_meses_porcentaje: 75,
-    interes_18_meses_porcentaje: 85,
+    margen_porcentaje: 20,
+    interes_6_meses_porcentaje: 50,
+    interes_12_meses_porcentaje: 75,
+    interes_15_meses_porcentaje: 85,
+    interes_18_meses_porcentaje: 0,
     stock: 0,
     ubicacion: "En Local",
     fastrax_id_sucursal: "",
@@ -229,11 +229,11 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
       categoria: data.categoria || "",
       url_slug: data.url_slug || "",
       costo: data.costo != null ? Number(data.costo) : 0,
-      margen_porcentaje: data.margen_porcentaje != null ? Number(data.margen_porcentaje) : 18,
-      interes_6_meses_porcentaje: data.interes_6_meses_porcentaje != null ? Number(data.interes_6_meses_porcentaje) : 45,
-      interes_12_meses_porcentaje: data.interes_12_meses_porcentaje != null ? Number(data.interes_12_meses_porcentaje) : 65,
-      interes_15_meses_porcentaje: data.interes_15_meses_porcentaje != null ? Number(data.interes_15_meses_porcentaje) : 75,
-      interes_18_meses_porcentaje: data.interes_18_meses_porcentaje != null ? Number(data.interes_18_meses_porcentaje) : 85,
+      margen_porcentaje: data.margen_porcentaje != null ? Number(data.margen_porcentaje) : 20,
+      interes_6_meses_porcentaje: data.interes_6_meses_porcentaje != null ? Number(data.interes_6_meses_porcentaje) : 50,
+      interes_12_meses_porcentaje: data.interes_12_meses_porcentaje != null ? Number(data.interes_12_meses_porcentaje) : 75,
+      interes_15_meses_porcentaje: data.interes_15_meses_porcentaje != null ? Number(data.interes_15_meses_porcentaje) : 85,
+      interes_18_meses_porcentaje: data.interes_18_meses_porcentaje != null ? Number(data.interes_18_meses_porcentaje) : 0,
       stock: data.stock != null ? Number(data.stock) : 0,
       ubicacion: data.ubicacion || "En Local",
       fastrax_id_sucursal: data.fastrax_id_sucursal || "",
@@ -261,8 +261,8 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
       } else {
         setFormData({
           id: "", sku: "", nombre: "", descripcion: "", codigo_wos: "", codigo_pro: "", codigo_ext: "",
-          categoria: "", url_slug: "", costo: 0, margen_porcentaje: 18, interes_6_meses_porcentaje: 45,
-          interes_12_meses_porcentaje: 65, interes_15_meses_porcentaje: 75, interes_18_meses_porcentaje: 85,
+          categoria: "", url_slug: "", costo: 0, margen_porcentaje: 20, interes_6_meses_porcentaje: 50,
+          interes_12_meses_porcentaje: 75, interes_15_meses_porcentaje: 85, interes_18_meses_porcentaje: 0,
           stock: 0, ubicacion: "En Local", fastrax_id_sucursal: "", estado: "Activo",
           imagen_url: "", imagenes_extra: ["", "", "", "", ""], video_url: "", destacado: false,
           show_in_hero: false, source: ""
@@ -278,6 +278,12 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
       nombre,
       url_slug: !formData.url_slug || formData.url_slug === generateSlug(formData.nombre) ? newSlug : formData.url_slug,
     });
+  };
+
+  const handleExtraImageChange = (index: number, value: string) => {
+    const newImages = [...formData.imagenes_extra];
+    newImages[index] = value;
+    setFormData({ ...formData, imagenes_extra: newImages });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -321,7 +327,10 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
           show_in_hero: formData.show_in_hero,
           estado: formData.estado,
           imagen_url: formData.imagen_url,
-          video_url: formData.video_url
+          video_url: formData.video_url,
+          codigo_wos: formData.codigo_wos,
+          codigo_pro: formData.codigo_pro,
+          codigo_ext: formData.codigo_ext
         };
       }
 
@@ -389,17 +398,48 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                       <Badge className="absolute top-4 right-4 bg-slate-900/80 text-white font-mono">{formData.sku || 'N/A'}</Badge>
                    </div>
                    
+                   <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">URL Imagen Principal</Label>
+                      <Input 
+                        value={formData.imagen_url} 
+                        onChange={(e) => setFormData({ ...formData, imagen_url: e.target.value })} 
+                        placeholder="https://..."
+                        className="text-xs"
+                        disabled={formData.source === 'Fastrax'}
+                      />
+                   </div>
+
                    <div className="space-y-3">
                       <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
                          <LayoutGrid className="w-3 h-3" /> Galería Complementaria
                       </Label>
-                      <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                        {formData.imagenes_extra.map((img, i) => img && (
-                          <div key={i} className="w-16 h-16 rounded-xl border bg-white shrink-0 overflow-hidden shadow-sm hover:border-blue-400 transition-colors">
-                             <img src={img} className="w-full h-full object-contain p-1" alt="extra" />
+                      <div className="space-y-2">
+                        {formData.imagenes_extra.map((img, i) => (
+                          <div key={i} className="flex gap-2">
+                            <div className="w-10 h-10 rounded-lg border bg-white shrink-0 overflow-hidden flex items-center justify-center">
+                               {img ? <img src={img} className="w-full h-full object-contain" alt="thumb" /> : <span className="text-xs text-slate-300">#{i+1}</span>}
+                            </div>
+                            <Input 
+                              value={img} 
+                              onChange={(e) => handleExtraImageChange(i, e.target.value)}
+                              placeholder={`URL Imagen Extra ${i+1}`}
+                              className="text-xs h-10 flex-1"
+                              disabled={formData.source === 'Fastrax'}
+                            />
                           </div>
                         ))}
                       </div>
+                   </div>
+
+                   <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">URL Video (YouTube/Vimeo)</Label>
+                      <Input 
+                        value={formData.video_url} 
+                        onChange={(e) => setFormData({ ...formData, video_url: e.target.value })} 
+                        placeholder="https://..."
+                        className="text-xs"
+                        disabled={formData.source === 'Fastrax'}
+                      />
                    </div>
 
                    {/* Card de Precios Dinámicos */}
@@ -444,6 +484,16 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                         <Input value={formData.nombre} onChange={(e) => handleNombreChange(e.target.value)} required disabled={formData.source === 'Fastrax'} className="h-12 text-lg font-bold" />
                       </div>
 
+                      <div className="md:col-span-2 space-y-2">
+                        <Label className="font-bold text-xs uppercase text-slate-500">URL Slug (SEO)</Label>
+                        <Input 
+                          value={formData.url_slug} 
+                          onChange={(e) => setFormData({ ...formData, url_slug: e.target.value })} 
+                          disabled={formData.source === 'Fastrax'} 
+                          className="font-mono text-xs bg-slate-50" 
+                        />
+                      </div>
+
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                            <Label className="font-bold">Categoría *</Label>
@@ -476,6 +526,22 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                             <SelectItem value="Inactivo">Inactivo (Oculto)</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                    </div>
+
+                    {/* Códigos Internos */}
+                    <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase text-slate-500">Código WOS</Label>
+                        <Input value={formData.codigo_wos} onChange={(e) => setFormData({ ...formData, codigo_wos: e.target.value })} disabled={formData.source === 'Fastrax'} className="h-9 text-xs font-mono" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase text-slate-500">Código PRO</Label>
+                        <Input value={formData.codigo_pro} onChange={(e) => setFormData({ ...formData, codigo_pro: e.target.value })} disabled={formData.source === 'Fastrax'} className="h-9 text-xs font-mono" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase text-slate-500">Código EXT</Label>
+                        <Input value={formData.codigo_ext} onChange={(e) => setFormData({ ...formData, codigo_ext: e.target.value })} disabled={formData.source === 'Fastrax'} className="h-9 text-xs font-mono" />
                       </div>
                     </div>
 
