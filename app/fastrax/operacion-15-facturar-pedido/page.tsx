@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -73,6 +74,10 @@ export default function Operacion15Page() {
         <div>
           <h2 className="text-3xl font-bold text-white tracking-tight italic uppercase">Facturar Pedido</h2>
           <p className="text-slate-400 mt-1">Confirmación definitiva y emisión de factura en el sistema ERP de Fastrax.</p>
+          <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 font-mono bg-slate-900/50 px-2 py-1 rounded w-fit border border-slate-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            https://sisfx247.fastrax.com.py:45347/MarketPlace/estatus.php
+          </div>
         </div>
         <Badge variant="outline" className="px-6 py-2 border-emerald-500/50 text-emerald-400 font-mono text-xs bg-emerald-500/5 uppercase tracking-widest">
           OPE_ID: 15

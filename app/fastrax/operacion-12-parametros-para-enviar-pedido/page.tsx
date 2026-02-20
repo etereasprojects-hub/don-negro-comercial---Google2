@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -5,7 +6,7 @@ import { Send, Plus, Trash2, Code, Server, Terminal, Activity, ShoppingCart, Pac
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -147,6 +148,10 @@ export default function Operacion12Page() {
         <div>
           <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">Operación 12: Enviar Pedido</h2>
           <p className="text-slate-400 font-medium">Inyección directa de órdenes al ERP de Fastrax.</p>
+          <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 font-mono bg-slate-900/50 px-2 py-1 rounded w-fit border border-slate-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            https://sisfx247.fastrax.com.py:45347/MarketPlace/estatus.php
+          </div>
         </div>
         <Badge variant="outline" className="px-6 py-2 border-pink-500/50 text-pink-400 font-mono text-xs bg-pink-500/10">
           SYSTEM_OP: 0x12
@@ -164,7 +169,7 @@ export default function Operacion12Page() {
             </CardHeader>
             <CardContent className="p-5 space-y-6">
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">ID Cliente</Label>
+                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">ID Cliente (CLI)</Label>
                 <div className="relative">
                   <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pink-400" />
                   <Input 
@@ -176,7 +181,7 @@ export default function Operacion12Page() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">ID Ecommerce</Label>
+                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">ID Ecommerce (PED)</Label>
                 <Input 
                   className={inputClass}
                   placeholder="ID Pedido Externo"
@@ -186,7 +191,7 @@ export default function Operacion12Page() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Método de Pago</Label>
+                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Método de Pago (PGT)</Label>
                 <Select value={orderHeader.pgt} onValueChange={(val) => setOrderHeader({...orderHeader, pgt: val})}>
                   <SelectTrigger className="bg-slate-950 border-slate-600 text-slate-50 font-bold h-11">
                     <SelectValue />
