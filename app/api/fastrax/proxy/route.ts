@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import https from 'https';
 // Added import for Buffer to fix "Cannot find name 'Buffer'" error in TypeScript
@@ -11,7 +12,8 @@ export async function POST(request: Request) {
     // Credenciales reales proporcionadas por el usuario
     const cod = "42352";
     const pas = "spW]<t&^(+-3Ha=FsfsE-aH4=?ut_1";
-    const url = 'https://sisfxapi.fastrax.com.py:60253/MarketPlace/estatus.php';
+    // Updated URL based on user request
+    const url = 'https://sisfx247.fastrax.com.py:45347/MarketPlace/estatus.php';
 
     const formData = new URLSearchParams();
     formData.append('cod', cod);
