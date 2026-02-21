@@ -271,7 +271,7 @@ export default function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImport
               .insert({
                 nombre: product.nombre,
                 costo: product.costo,
-                codigo_ext: product.codigo_ext,
+                codigo_ext: product.codigo_ext || null,
                 stock: product.stock || 0,
                 categoria: product.categoria || "",
                 ubicacion: product.ubicacion || "En Local",
@@ -338,7 +338,7 @@ export default function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImport
               .from("products")
               .update({
                 costo: match.csvProduct.costo,
-                codigo_ext: match.csvProduct.codigo_ext,
+                codigo_ext: match.csvProduct.codigo_ext || null,
                 updated_at: new Date().toISOString()
               })
               .eq("id", match.webProduct.id);

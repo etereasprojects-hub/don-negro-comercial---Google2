@@ -328,9 +328,9 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
           estado: formData.estado,
           imagen_url: formData.imagen_url,
           video_url: formData.video_url,
-          codigo_wos: formData.codigo_wos,
-          codigo_pro: formData.codigo_pro,
-          codigo_ext: formData.codigo_ext
+          codigo_wos: formData.codigo_wos || null,
+          codigo_pro: formData.codigo_pro || null,
+          codigo_ext: formData.codigo_ext || null
         };
       }
 
