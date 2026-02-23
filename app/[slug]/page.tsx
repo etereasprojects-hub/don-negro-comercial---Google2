@@ -173,11 +173,6 @@ export default function ProductPage() {
                     <Check className="w-3 h-3 mr-1" /> Stock en Almacén
                   </Badge>
                 )}
-                {product.ubicacion && (
-                   <Badge variant="outline" className="text-[10px] border-slate-200 text-slate-500 bg-slate-50 font-black uppercase tracking-widest px-3 py-1">
-                    <MapPin className="w-3 h-3 mr-1" /> {product.ubicacion.includes('Asunción') ? 'Asunción' : 'Ciudad del Este'}
-                   </Badge>
-                )}
               </div>
             </div>
 
