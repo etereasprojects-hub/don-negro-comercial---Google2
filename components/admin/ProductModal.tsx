@@ -529,8 +529,8 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                       </div>
                     </div>
 
-                    {/* Códigos Internos */}
-                    <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    {/* Códigos Internos y Stock */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
                       <div className="space-y-1">
                         <Label className="text-[10px] font-bold uppercase text-slate-500">Código WOS</Label>
                         <Input value={formData.codigo_wos} onChange={(e) => setFormData({ ...formData, codigo_wos: e.target.value })} disabled={formData.source === 'Fastrax'} className="h-9 text-xs font-mono" />
@@ -542,6 +542,16 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                       <div className="space-y-1">
                         <Label className="text-[10px] font-bold uppercase text-slate-500">Código EXT</Label>
                         <Input value={formData.codigo_ext} onChange={(e) => setFormData({ ...formData, codigo_ext: e.target.value })} disabled={formData.source === 'Fastrax'} className="h-9 text-xs font-mono" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase text-slate-500">Stock</Label>
+                        <Input 
+                          type="number" 
+                          value={formData.stock} 
+                          onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} 
+                          disabled={formData.source === 'Fastrax'} 
+                          className="h-9 text-xs font-bold" 
+                        />
                       </div>
                     </div>
 
