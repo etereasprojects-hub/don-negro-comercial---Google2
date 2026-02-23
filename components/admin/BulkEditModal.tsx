@@ -48,6 +48,7 @@ export default function BulkEditModal({
     interes_12_meses_porcentaje: "" as string | number,
     interes_15_meses_porcentaje: "" as string | number,
     interes_18_meses_porcentaje: "" as string | number,
+    stock: "" as string | number,
     estado: "",
     destacado: false,
     updateDestacado: false, // Nueva bandera para saber si queremos actualizar el checkbox
@@ -81,6 +82,7 @@ export default function BulkEditModal({
       interes_12_meses_porcentaje: "",
       interes_15_meses_porcentaje: "",
       interes_18_meses_porcentaje: "",
+      stock: "",
       estado: "",
       destacado: false,
       updateDestacado: false,
@@ -112,6 +114,9 @@ export default function BulkEditModal({
       }
       if (formData.interes_18_meses_porcentaje !== "") {
         dataToUpdate.interes_18_meses_porcentaje = Number(formData.interes_18_meses_porcentaje);
+      }
+      if (formData.stock !== "") {
+        dataToUpdate.stock = Number(formData.stock);
       }
       
       if (formData.updateDestacado) {
@@ -245,6 +250,20 @@ export default function BulkEditModal({
                     placeholder="Ejemplo: 85"
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h3 className="font-semibold text-lg mb-3 text-gray-800">Inventario</h3>
+              <div>
+                <Label htmlFor="stock">Stock</Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  value={formData.stock}
+                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                  placeholder="Ejemplo: 10"
+                />
               </div>
             </div>
 
