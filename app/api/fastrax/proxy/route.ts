@@ -38,21 +38,22 @@ export async function POST(request: Request) {
       }
     });
 
-    const postData = searchParams.toString();
+    const queryString = searchParams.toString();
+    const finalPath = `${path}?${queryString}`;
 
-    console.log(`[Fastrax Proxy] Conectando a ${hostname}:${port} (OPE: ${ope})...`);
+    console.log(`[Fastrax Proxy] Conectando a ${hostname}:${port}${finalPath} (OPE: ${ope})...`);
 
     // Promesa para manejar la petición HTTPS nativa de Node.js
     const responseData = await new Promise((resolve, reject) => {
       const options = {
         hostname: hostname,
         port: port,
-        path: path,
+        path: finalPath,
         method: 'POST',
         agent: agent, // Usamos el agente permisivo definido arriba
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Length': Buffer.byteLength(postData),
+          'Content-Length': 0,
           'User-Agent': 'DonNegroStore/1.0', // Identificador de cliente
           'Connection': 'keep-alive',
           'Accept': '*/*'
@@ -148,7 +149,6 @@ export async function POST(request: Request) {
         reject({ message: "Tiempo de espera agotado (30s) conectando a Fastrax.", code: "ETIMEDOUT" });
       });
 
-      req.write(postData);
       req.end();
     });
 
