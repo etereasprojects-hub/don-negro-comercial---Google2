@@ -8,6 +8,15 @@ const agent = new https.Agent({
 
 export async function GET() {
   const startTime = Date.now();
+  let outboundIp = 'unknown';
+  
+  try {
+    const ipRes = await fetch('https://api.ipify.org?format=json');
+    const ipData = await ipRes.json();
+    outboundIp = ipData.ip;
+  } catch (e) {
+    console.error('Error fetching IP:', e);
+  }
   
   try {
     const result = await new Promise((resolve, reject) => {
@@ -31,8 +40,8 @@ export async function GET() {
       req.end();
     });
 
-    return NextResponse.json({ success: true, result });
+    return NextResponse.json({ success: true, ip: outboundIp, result });
   } catch (error) {
-    return NextResponse.json({ success: false, error });
+    return NextResponse.json({ success: false, ip: outboundIp, error });
   }
 }
