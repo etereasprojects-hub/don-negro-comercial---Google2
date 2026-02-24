@@ -12,9 +12,9 @@ export async function GET() {
   try {
     const result = await new Promise((resolve, reject) => {
       const req = https.request({
-        hostname: 'sisfx247.fastrax.com.py',
-        port: 45347,
-        path: '/MarketPlace/estatus.php',
+        hostname: 'sisfxapi.fastrax.com.py',
+        port: 60253,
+        path: '/MarketPlace/production.php',
         method: 'GET',
         agent,
         timeout: 10000,
