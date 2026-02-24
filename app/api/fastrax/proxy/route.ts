@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     // Credenciales de Producción
     const cod = "42352";
-    const pas = "spW]<t&^(+-3Ha=FsfsE-aH4=?ut_1";
+    const pas = "#eN1W2l6)g,VDMB.Qz32";
     
     // URL de Producción
     const hostname = 'sisfx247.fastrax.com.py';
