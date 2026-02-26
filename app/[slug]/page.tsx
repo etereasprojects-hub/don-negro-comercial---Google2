@@ -32,7 +32,7 @@ interface Product {
 }
 
 interface Props {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }
 
 async function getProduct(slug: string): Promise<Product | null> {
@@ -55,7 +55,7 @@ export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  const slug = (await params).slug;
+  const slug = params.slug;
   const product = await getProduct(slug);
 
   if (!product) {
@@ -78,7 +78,7 @@ export async function generateMetadata(
 }
 
 export default async function ProductPage({ params }: Props) {
-  const slug = (await params).slug;
+  const slug = params.slug;
   const product = await getProduct(slug);
 
   if (!product) {
