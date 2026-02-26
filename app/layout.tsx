@@ -4,8 +4,12 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from '@/components/ui/toaster';
 import { CartProvider } from '@/lib/cart-context';
-import { supabase } from '@/lib/supabase';
+import { createClient } from "@supabase/supabase-js";
 import Script from 'next/script';
+
+// Configuración de Supabase (usamos las mismas que en lib/supabase)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://pjydwqblhhmdsybpzbzx.supabase.co";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqeWR3cWJsaGhtZHN5YnB6Ynp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMzM1MzksImV4cCI6MjA4NDYwOTUzOX0.bMsslQ4hAO78wDitVe07jcfHmbAUGU00bVYLU-wMFhI";
 
 // Forzamos a que el layout se revalide siempre para captar cambios en la base de datos (favicon/nombre)
 export const revalidate = 0;
@@ -19,6 +23,10 @@ const inter = Inter({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false }
+  });
+
   const { data: config } = await supabase
     .from('store_configuration')
     .select('store_name, favicon_url')
