@@ -17,13 +17,13 @@ export async function POST(request: Request) {
     const { ope, ...params } = body;
 
     // Credenciales de Producción
-    const cod = "42352";
-    const pas = "#eN1W2l6)g,VDMB.Qz32";
+    const cod = process.env.FASTRAX_COD || "42352";
+    const pas = process.env.FASTRAX_PAS || "#eN1W2l6)g,VDMB.Qz32";
     
     // URL de Producción
-    const hostname = 'sisfx247.fastrax.com.py';
-    const port = 45347;
-    const path = '/MarketPlace/estatus.php';
+    const hostname = process.env.FASTRAX_HOSTNAME || 'sisfx247.fastrax.com.py';
+    const port = parseInt(process.env.FASTRAX_PORT || '45347');
+    const path = process.env.FASTRAX_PATH || '/MarketPlace/estatus.php';
 
     // Preparar los datos en formato x-www-form-urlencoded (estándar PHP antiguo)
     const searchParams = new URLSearchParams();
