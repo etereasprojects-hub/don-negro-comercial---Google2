@@ -226,16 +226,16 @@ export default function ImageGeneratorPage() {
                       />
                       
                       {/* Logo Superpuesto */}
-                      <div className="absolute top-6 right-6 drop-shadow-xl">
+                      <div className="absolute top-6 left-6 drop-shadow-xl">
                         {storeConfig?.logo_url ? (
                           <img 
                             src={getProxiedUrl(storeConfig.logo_url)} 
                             alt="Logo" 
-                            className="h-14 object-contain" 
+                            className="h-7 object-contain" 
                             crossOrigin="anonymous"
                           />
                         ) : (
-                          <h2 className="text-xl font-black uppercase tracking-tighter text-[#2E3A52] bg-white/90 px-3 py-1.5 rounded-xl shadow-sm">
+                          <h2 className="text-sm font-black uppercase tracking-tighter text-[#2E3A52] bg-white/90 px-2 py-1 rounded-lg shadow-sm">
                             {storeConfig?.store_name || "Don Negro"}
                           </h2>
                         )}
