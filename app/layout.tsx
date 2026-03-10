@@ -63,6 +63,11 @@ export async function generateMetadata(): Promise<Metadata> {
     authors: [{ name: storeName }],
     creator: storeName,
     publisher: storeName,
+    verification: {
+      other: {
+        "facebook-domain-verification": ["bz0q3hnjr2j6cdkgzf8xk48si1i9e3"],
+      },
+    },
     openGraph: {
       type: 'website',
       locale: 'es_PY',
@@ -87,52 +92,46 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <head>
-        <meta name="facebook-domain-verification" content="bz0q3hnjr2j6cdkgzf8xk48si1i9e3" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://casa-americana.b-cdn.net" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://www.innovagame.com.py" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://tiendamovil.com.py" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://www.gonzalezgimenez.com.py" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://storage.googleapis.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://www.innovagame.com.py" />
-        <link rel="dns-prefetch" href="https://tiendamovil.com.py" />
-        <link rel="dns-prefetch" href="https://www.gonzalezgimenez.com.py" />
-        <link rel="dns-prefetch" href="https://casa-americana.b-cdn.net" />
-
+      <body className={inter.className}>
         {/* Google tag (gtag.js) */}
         <Script
           async
           src="https://www.googletagmanager.com/gtag/js?id=G-CGD8JDQF1B"
           strategy="afterInteractive"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-CGD8JDQF1B');
-          `}
-        </Script>
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-CGD8JDQF1B');
+            `,
+          }}
+        />
 
         {/* Meta Pixel Code */}
-        <Script id="meta-pixel" strategy="afterInteractive">
-          {`
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '1149486770440852');
-            fbq('track', 'PageView');
-          `}
-        </Script>
-      </head>
-      <body className={inter.className}>
+        <Script
+          id="meta-pixel"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              !function(f,b,e,v,n,t,s)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(window, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+              fbq('init', '1149486770440852');
+              fbq('track', 'PageView');
+            `,
+          }}
+        />
+
         <noscript>
           <img
             height="1"
