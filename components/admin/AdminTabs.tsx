@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Package, ShoppingCart, TrendingUp, CreditCard, MessageSquare, Calendar, MessageCircle, Brain, Receipt, Settings, Image, Plug, FolderTree, Beaker, Database } from "lucide-react";
+import { Package, ShoppingCart, TrendingUp, CreditCard, MessageSquare, Calendar, MessageCircle, Brain, Receipt, Settings, Image, Plug, FolderTree, Beaker, Database, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface AdminTabsProps {
@@ -11,6 +11,7 @@ interface AdminTabsProps {
 const tabs = [
   { id: "productos", label: "Local", icon: Package, count: null },
   { id: "productos-fastrax", label: "Fastrax", icon: Database, count: null },
+  { id: "generador", label: "Generador", icon: Share2, count: null },
   { id: "categorias", label: "Categorías", icon: FolderTree, count: null },
   { id: "pedidos", label: "Pedidos", icon: ShoppingCart, count: null },
   { id: "ventas", label: "Ventas", icon: TrendingUp, count: null },
@@ -33,6 +34,7 @@ export default function AdminTabs({ activeTab }: AdminTabsProps) {
     const routes: Record<string, string> = {
       "productos": "/owner/dashboard",
       "productos-fastrax": "/owner/fastrax",
+      "generador": "/owner/image-generator",
       "categorias": "/owner/categorias",
       "pedidos": "/owner/pedidos",
       "ventas": "/owner/ventas",
