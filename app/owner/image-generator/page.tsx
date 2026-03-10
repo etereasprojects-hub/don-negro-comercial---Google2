@@ -87,17 +87,24 @@ export default function ImageGeneratorPage() {
     setFilteredProducts(filtered);
   }, [searchTerm, products]);
 
+  const getProxiedUrl = (url: string | null) => {
+    if (!url) return "";
+    if (url.startsWith("data:")) return url;
+    return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+  };
+
   const handleDownload = async () => {
     if (!frameRef.current) return;
     setGenerating(true);
     try {
       // Esperamos un poco para asegurar que las imágenes estén cargadas
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const dataUrl = await toPng(frameRef.current, {
         cacheBust: true,
         pixelRatio: 3, // 360 * 3 = 1080, 640 * 3 = 1920
         backgroundColor: '#ffffff',
+        skipFonts: true, // A veces las fuentes externas causan problemas
       });
       
       const link = document.createElement('a');
@@ -213,7 +220,7 @@ export default function ImageGeneratorPage() {
                     <div className="p-6 flex justify-center items-center h-24">
                       {storeConfig?.logo_url ? (
                         <img 
-                          src={storeConfig.logo_url} 
+                          src={getProxiedUrl(storeConfig.logo_url)} 
                           alt="Logo" 
                           className="h-16 object-contain" 
                           crossOrigin="anonymous"
@@ -229,7 +236,7 @@ export default function ImageGeneratorPage() {
                     <div className="flex-1 flex items-center justify-center p-8">
                       <div className="w-full h-full relative flex items-center justify-center">
                         <img 
-                          src={selectedProduct.imagen_url} 
+                          src={getProxiedUrl(selectedProduct.imagen_url)} 
                           alt={selectedProduct.nombre}
                           className="max-w-full max-h-full object-contain drop-shadow-2xl"
                           crossOrigin="anonymous"
