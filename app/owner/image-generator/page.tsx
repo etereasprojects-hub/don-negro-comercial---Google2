@@ -216,50 +216,48 @@ export default function ImageGeneratorPage() {
                       backgroundImage: 'linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%)',
                     }}
                   >
-                    {/* Header con Logo */}
-                    <div className="p-4 flex justify-end items-center h-20">
-                      {storeConfig?.logo_url ? (
-                        <img 
-                          src={getProxiedUrl(storeConfig.logo_url)} 
-                          alt="Logo" 
-                          className="h-10 object-contain" 
-                          crossOrigin="anonymous"
-                        />
-                      ) : (
-                        <h2 className="text-xl font-black uppercase tracking-tighter text-[#2E3A52]">
-                          {storeConfig?.store_name || "Don Negro"}
-                        </h2>
-                      )}
-                    </div>
-
-                    {/* Imagen del Producto */}
-                    <div className="flex-1 flex items-center justify-center p-4">
-                      <div className="w-full h-full relative flex items-center justify-center">
-                        <img 
-                          src={getProxiedUrl(selectedProduct.imagen_url)} 
-                          alt={selectedProduct.nombre}
-                          className="max-w-[90%] max-h-[90%] object-contain drop-shadow-2xl"
-                          crossOrigin="anonymous"
-                        />
+                    {/* Imagen del Producto con Logo Superpuesto */}
+                    <div className="flex-1 relative bg-white overflow-hidden">
+                      <img 
+                        src={getProxiedUrl(selectedProduct.imagen_url)} 
+                        alt={selectedProduct.nombre}
+                        className="w-full h-full object-contain"
+                        crossOrigin="anonymous"
+                      />
+                      
+                      {/* Logo Superpuesto */}
+                      <div className="absolute top-6 right-6 drop-shadow-xl">
+                        {storeConfig?.logo_url ? (
+                          <img 
+                            src={getProxiedUrl(storeConfig.logo_url)} 
+                            alt="Logo" 
+                            className="h-14 object-contain" 
+                            crossOrigin="anonymous"
+                          />
+                        ) : (
+                          <h2 className="text-xl font-black uppercase tracking-tighter text-[#2E3A52] bg-white/90 px-3 py-1.5 rounded-xl shadow-sm">
+                            {storeConfig?.store_name || "Don Negro"}
+                          </h2>
+                        )}
                       </div>
                     </div>
 
                     {/* Info del Producto */}
-                    <div className="p-6 space-y-4 bg-white rounded-t-[2.5rem] shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+                    <div className="p-6 space-y-4 bg-white rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.1)] relative z-10">
                       <div className="text-center space-y-1">
-                        <h2 className="text-lg font-black text-[#2E3A52] leading-tight uppercase tracking-tighter line-clamp-2">
+                        <h2 className="text-xl font-black text-[#2E3A52] leading-tight uppercase tracking-tighter line-clamp-2 px-2">
                           {selectedProduct.nombre}
                         </h2>
-                        <div className="inline-block bg-slate-100 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest text-slate-500">
+                        <div className="inline-block bg-slate-100 px-3 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-500">
                           {selectedProduct.categoria}
                         </div>
                       </div>
 
                       <div className="space-y-3">
                         {/* Precio Contado */}
-                        <div className="bg-gradient-to-r from-[#D91E7A] to-[#6B4199] p-3 rounded-2xl text-white text-center shadow-lg">
-                          <p className="text-[8px] font-black uppercase tracking-widest opacity-80 mb-0.5">Precio Contado</p>
-                          <p className="text-3xl font-black tracking-tighter">
+                        <div className="bg-gradient-to-r from-[#D91E7A] to-[#6B4199] p-4 rounded-2xl text-white text-center shadow-lg transform scale-105">
+                          <p className="text-[9px] font-black uppercase tracking-widest opacity-90 mb-0.5">Precio Contado</p>
+                          <p className="text-4xl font-black tracking-tighter">
                             {prices ? formatCurrency(prices.precioContado) : "---"}
                           </p>
                         </div>
@@ -267,10 +265,10 @@ export default function ImageGeneratorPage() {
                         {/* Financiación */}
                         {prices && (prices.disponible12Meses || prices.disponible6Meses) && (
                           <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl text-center">
-                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">¡Llevalo en cuotas!</p>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">¡Llevalo en cuotas!</p>
                             <div className="flex justify-center items-baseline gap-1">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase">Desde</span>
-                              <p className="text-2xl font-black text-[#6B4199] tracking-tighter">
+                              <span className="text-xs font-bold text-slate-500 uppercase">Desde</span>
+                              <p className="text-3xl font-black text-[#6B4199] tracking-tighter">
                                 {formatCurrency(prices.cuota12Meses || prices.cuota6Meses)}
                               </p>
                             </div>
@@ -278,8 +276,8 @@ export default function ImageGeneratorPage() {
                         )}
                       </div>
 
-                      <div className="text-center space-y-1">
-                        <p className="text-[9px] font-black text-[#6B4199] uppercase tracking-wider">
+                      <div className="text-center space-y-1 pt-1">
+                        <p className="text-[10px] font-black text-[#6B4199] uppercase tracking-wider">
                           disponible en www.donegro.com
                         </p>
                         <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
