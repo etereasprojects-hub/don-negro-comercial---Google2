@@ -61,14 +61,28 @@ export default function BannerSlider({ banners }: BannerSliderProps) {
           {banners.map((banner) => (
             <div key={banner.id} className="flex-[0_0_100%] min-w-0 relative">
               <div className="relative w-full aspect-[2/1] md:aspect-[8/1]">
-                <Image
-                  src={banner.desktop_image_url}
-                  alt="Banner promocional"
-                  fill
-                  className="object-cover"
-                  sizes="100vw"
-                  priority
-                />
+                {/* Desktop Image */}
+                <div className="hidden md:block absolute inset-0">
+                  <Image
+                    src={banner.desktop_image_url}
+                    alt="Banner promocional"
+                    fill
+                    className="object-cover"
+                    sizes="100vw"
+                    priority
+                  />
+                </div>
+                {/* Mobile Image */}
+                <div className="md:hidden absolute inset-0">
+                  <Image
+                    src={banner.mobile_image_url}
+                    alt="Banner promocional"
+                    fill
+                    className="object-cover"
+                    sizes="100vw"
+                    priority
+                  />
+                </div>
                 {banner.link_url && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/10 transition-colors">
                     <Button

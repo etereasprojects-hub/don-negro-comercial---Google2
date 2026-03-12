@@ -32,10 +32,10 @@ export default function Hero({ heroImage }: HeroProps) {
       className="relative pt-28 md:pt-32 pb-20 overflow-hidden bg-[#F7F7F9]"
     >
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-4 items-center mb-12">
           
           {/* Columna izquierda — texto */}
-          <div className="space-y-6 lg:pl-4">
+          <div className="space-y-6">
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-tight tracking-tight text-[#1A1A2E]">
               Todo para<br />
               Tu{' '}
@@ -107,16 +107,16 @@ export default function Hero({ heroImage }: HeroProps) {
           </div>
 
           {/* Columna derecha — imagen */}
-          <div className="relative flex items-center justify-center lg:justify-end">
+          <div className="relative flex items-center justify-center">
             {heroImage ? (
               <Image
                 src={heroImage}
                 alt="Productos Don Negro Comercial"
-                width={520}
-                height={440}
-                className="object-contain drop-shadow-2xl max-w-[90%] lg:max-w-[520px]"
+                width={580}
+                height={580}
+                className="object-contain drop-shadow-2xl w-full max-w-[580px]"
                 priority
-                sizes="(max-width: 768px) 90vw, 520px"
+                sizes="(max-width: 768px) 90vw, 580px"
               />
             ) : (
               <div className="w-full h-[400px] flex items-center justify-center">
