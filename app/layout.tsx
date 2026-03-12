@@ -41,7 +41,6 @@ export async function generateMetadata(): Promise<Metadata> {
   const fullTitle = "Don Negro Comercial, electrodomésticos, electrónica, muebles, indumentaria deportiva y mucho mas.";
 
   return {
-    metadataBase: new URL('https://www.donegro.com'),
     title: {
       default: fullTitle,
       template: `%s | ${storeName}`
