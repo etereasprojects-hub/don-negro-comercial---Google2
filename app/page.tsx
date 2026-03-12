@@ -26,15 +26,32 @@ async function getBanners(section: string) {
   return data || [];
 }
 
+async function getHeroImage() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } }
+  );
+  const { data } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'hero_image_url')
+    .single();
+  return data?.value || null;
+}
+
 export default async function Home() {
-  const banners = await getBanners('hero_featured');
+  const [banners, heroImage] = await Promise.all([
+    getBanners('hero_featured'),
+    getHeroImage(),
+  ]);
 
   return (
     <>
       <StructuredData />
       <main className="min-h-screen">
         <Header />
-        <Hero />
+        <Hero heroImage={heroImage} />
         <BannerSlider banners={banners as any} />
         <FeaturedProducts />
         <About />
