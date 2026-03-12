@@ -58,6 +58,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
   const searchParams = useSearchParams();
   const [products] = useState<Product[]>(initialProducts);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [visibleCount, setVisibleCount] = useState(24);
   
   // States para Filtros
   const [searchTerm, setSearchTerm] = useState("");
@@ -122,6 +123,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     }
 
     setFilteredProducts(filtered);
+    setVisibleCount(24);
   };
 
   const toggleCategory = (cat: string) => {
@@ -312,7 +314,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         <div className="flex-1">
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {filteredProducts.length > 0 ? (
-              filteredProducts.map((product) => {
+              filteredProducts.slice(0, visibleCount).map((product) => {
                 const prices = calculatePrices({
                   costo: Number(product.costo ?? 0),
                   margen_porcentaje: Number(product.margen_porcentaje ?? 18),
@@ -418,6 +420,21 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
               </div>
             )}
           </div>
+
+          {visibleCount < filteredProducts.length && (
+            <div className="mt-10 flex flex-col items-center gap-2">
+              <Button
+                onClick={() => setVisibleCount(prev => prev + 24)}
+                variant="outline"
+                className="h-12 px-8 rounded-xl font-black uppercase tracking-widest text-xs border-2 border-[#D91E7A] text-[#D91E7A] hover:bg-[#D91E7A] hover:text-white transition-all"
+              >
+                Ver más productos
+              </Button>
+              <p className="text-xs text-gray-400">
+                Mostrando {Math.min(visibleCount, filteredProducts.length)} de {filteredProducts.length}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
