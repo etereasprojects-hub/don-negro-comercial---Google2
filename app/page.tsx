@@ -33,11 +33,10 @@ async function getHeroImage() {
     { auth: { persistSession: false } }
   );
   const { data } = await supabase
-    .from('site_settings')
-    .select('value')
-    .eq('key', 'hero_image_url')
-    .single();
-  return data?.value || null;
+    .from('store_configuration')
+    .select('hero_image_url')
+    .maybeSingle();
+  return data?.hero_image_url || null;
 }
 
 export default async function Home() {
