@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import useEmblaCarousel from "embla-carousel-react";
-import { supabase } from "@/lib/supabase";
 import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -15,17 +15,12 @@ interface Banner {
 }
 
 interface BannerSliderProps {
-  section: "hero_featured" | "catalog_top" | "catalog_bottom" | "product_bottom";
+  banners: Banner[];
 }
 
-export default function BannerSlider({ section }: BannerSliderProps) {
-  const [banners, setBanners] = useState<Banner[]>([]);
+export default function BannerSlider({ banners }: BannerSliderProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "center" });
   const [selectedIndex, setSelectedIndex] = useState(0);
-
-  useEffect(() => {
-    loadBanners();
-  }, [section]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -52,21 +47,6 @@ export default function BannerSlider({ section }: BannerSliderProps) {
     return () => clearInterval(interval);
   }, [emblaApi, banners.length]);
 
-  const loadBanners = async () => {
-    const { data, error } = await supabase
-      .from("banners")
-      .select("*")
-      .eq("section", section)
-      .eq("is_active", true)
-      .order("order", { ascending: true });
-
-    if (error) {
-      console.error("Error loading banners:", error);
-    } else {
-      setBanners(data || []);
-    }
-  };
-
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
 
@@ -80,18 +60,15 @@ export default function BannerSlider({ section }: BannerSliderProps) {
         <div className="flex">
           {banners.map((banner) => (
             <div key={banner.id} className="flex-[0_0_100%] min-w-0 relative">
-              <div className="relative w-full pb-[50%] md:pb-[12.5%]">
-                <picture>
-                  <source
-                    media="(max-width: 768px)"
-                    srcSet={banner.mobile_image_url}
-                  />
-                  <img
-                    src={banner.desktop_image_url}
-                    alt="Banner"
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                </picture>
+              <div className="relative w-full aspect-[2/1] md:aspect-[8/1]">
+                <Image
+                  src={banner.desktop_image_url}
+                  alt="Banner promocional"
+                  fill
+                  className="object-cover"
+                  sizes="100vw"
+                  priority
+                />
                 {banner.link_url && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/10 transition-colors">
                     <Button

@@ -63,6 +63,19 @@ async function getProduct(slug: string): Promise<Product | null> {
   return data;
 }
 
+async function getBanners(section: string) {
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false }
+  });
+  const { data } = await supabase
+    .from('banners')
+    .select('*')
+    .eq('section', section)
+    .eq('is_active', true)
+    .order('order', { ascending: true });
+  return data || [];
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = params.slug;
   const product = await getProduct(slug);
@@ -100,7 +113,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const slug = params.slug;
-  const product = await getProduct(slug);
+  const [product, banners] = await Promise.all([
+    getProduct(slug),
+    getBanners('product_bottom')
+  ]);
 
   if (!product) {
     notFound();
@@ -109,7 +125,7 @@ export default async function ProductPage({ params }: Props) {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <ProductClient product={product} />
+      <ProductClient product={product} banners={banners as any} />
       <Footer />
       <WhatsAppButton />
       <FloatingButtons />

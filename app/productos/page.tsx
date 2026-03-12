@@ -49,16 +49,35 @@ async function getProducts() {
   return data || [];
 }
 
+async function getBanners(section: string) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } }
+  );
+  const { data } = await supabase
+    .from('banners')
+    .select('*')
+    .eq('section', section)
+    .eq('is_active', true)
+    .order('order', { ascending: true });
+  return data || [];
+}
+
 export default async function ProductsPage() {
-  const products = await getProducts();
+  const [products, bannersTop, bannersBottom] = await Promise.all([
+    getProducts(),
+    getBanners('catalog_top'),
+    getBanners('catalog_bottom'),
+  ]);
 
   return (
     <>
       <Header />
       <main className="min-h-screen bg-[#FDFDFD] pt-24 pb-20">
-        <BannerSlider section="catalog_top" />
+        <BannerSlider banners={bannersTop as any} />
         <ProductsClient initialProducts={products as any} />
-        <BannerSlider section="catalog_bottom" />
+        <BannerSlider banners={bannersBottom as any} />
       </main>
       <Footer />
       <WhatsAppButton />
