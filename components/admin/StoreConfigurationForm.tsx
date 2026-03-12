@@ -13,6 +13,7 @@ interface StoreConfig {
   store_name: string;
   logo_url: string | null;
   favicon_url: string | null;
+  og_image_url: string | null;
   email: string | null;
   whatsapp_number: string | null;
   whatsapp_24_7: string | null;
@@ -61,6 +62,7 @@ export default function StoreConfigurationForm() {
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const [uploadingOgImage, setUploadingOgImage] = useState(false);
 
   const [newLocation, setNewLocation] = useState({ name: '', address: '', phone: '' });
   const [newSocial, setNewSocial] = useState({ platform: 'facebook', url: '' });
@@ -238,6 +240,44 @@ export default function StoreConfigurationForm() {
       alert('Error al subir el favicon');
     } finally {
       setUploadingFavicon(false);
+    }
+  };
+
+  const handleOgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !config) return;
+
+    const file = e.target.files[0];
+    setUploadingOgImage(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `og-image-${Date.now()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('logos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('store_configuration')
+        .update({ og_image_url: publicUrl })
+        .eq('id', config.id);
+
+      if (updateError) throw updateError;
+
+      setConfig({ ...config, og_image_url: publicUrl });
+      alert('Imagen OG actualizada exitosamente.');
+    } catch (error) {
+      console.error('Error uploading OG image:', error);
+      alert('Error al subir la imagen OG');
+    } finally {
+      setUploadingOgImage(false);
     }
   };
 
@@ -471,6 +511,36 @@ export default function StoreConfigurationForm() {
                   {uploadingFavicon && <span className="text-sm text-gray-500 animate-pulse">Subiendo...</span>}
                 </div>
                 <p className="text-[11px] text-gray-500 mt-1">Se recomienda una imagen cuadrada de 32x32px o 64x64px.</p>
+              </div>
+
+              {/* Sección OG Image */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-2">
+                  Imagen OG (Vista previa en redes sociales y WhatsApp)
+                </label>
+                <p className="text-[11px] text-gray-500 mb-3">
+                  Formato JPG, tamaño 1200x630px, máximo 300KB. Esta imagen aparece cuando se comparte el sitio en WhatsApp, Facebook, Twitter, etc.
+                </p>
+                {config.og_image_url && (
+                  <div className="mb-4 p-2 bg-gray-50 rounded-lg border border-dashed inline-block w-full">
+                    <img
+                      src={config.og_image_url}
+                      alt="OG Image"
+                      className="w-full max-w-sm h-auto object-contain rounded"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1 text-center">Vista previa actual</p>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png"
+                    onChange={handleOgImageUpload}
+                    disabled={uploadingOgImage}
+                    className="flex-1"
+                  />
+                  {uploadingOgImage && <span className="text-sm text-gray-500 animate-pulse">Subiendo...</span>}
+                </div>
               </div>
             </div>
           </div>

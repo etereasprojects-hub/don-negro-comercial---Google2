@@ -29,12 +29,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const { data: config } = await supabase
     .from('store_configuration')
-    .select('store_name, favicon_url')
+    .select('store_name, favicon_url, og_image_url')
     .maybeSingle();
 
   // Si no hay nombre en la base de datos, usamos 'Don Negro Comercial' por defecto
   const storeName = config?.store_name || 'Don Negro Comercial';
   const favicon = config?.favicon_url || null;
+  const ogImage = config?.og_image_url || 'https://www.donegro.com/og-image.jpg';
 
   // Texto exacto solicitado para la pestaña del navegador
   const fullTitle = "Don Negro Comercial, electrodomésticos, electrónica, muebles, indumentaria deportiva y mucho mas.";
@@ -46,7 +47,6 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${storeName}`
     },
     description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles, indumentaria deportiva y aire acondicionado en Asunción, Paraguay.',
-    // Definimos explícitamente los iconos para sobrescribir cualquier default de Next.js o del navegador
     icons: {
       icon: favicon || '',
       shortcut: favicon || '',
@@ -68,17 +68,35 @@ export async function generateMetadata(): Promise<Metadata> {
         "facebook-domain-verification": ["bz0q3hnjr2j6cdkgzf8xk48si1i9e3"],
       },
     },
+    alternates: {
+      canonical: 'https://www.donegro.com',
+    },
     openGraph: {
       type: 'website',
       locale: 'es_PY',
       url: 'https://www.donegro.com',
       title: fullTitle,
+      description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles, indumentaria deportiva y aire acondicionado en Asunción, Paraguay.',
       siteName: storeName,
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: 'Don Negro Comercial - Electrónica, Electrodomésticos y más en Asunción',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: fullTitle,
+      description: 'Don Negro Comercial ofrece los mejores productos en electrónica, electrodomésticos, muebles, indumentaria deportiva y aire acondicionado en Asunción, Paraguay.',
+      images: [ogImage],
     },
     robots: {
       index: true,
       follow: true,
-    }
+    },
   };
 }
 

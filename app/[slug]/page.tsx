@@ -1,4 +1,4 @@
-import { Metadata, ResolvingMetadata } from "next";
+import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Header from "@/components/Header";
@@ -63,10 +63,7 @@ async function getProduct(slug: string): Promise<Product | null> {
   return data;
 }
 
-export async function generateMetadata(
-  { params }: Props,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = params.slug;
   const product = await getProduct(slug);
 
@@ -76,15 +73,27 @@ export async function generateMetadata(
     };
   }
 
-  const previousImages = (await parent).openGraph?.images || [];
-
   return {
     title: `${product.nombre} | Don Negro Comercial`,
-    description: product.descripcion?.substring(0, 160) || `Compra ${product.nombre} al mejor precio en Don Negro Comercial.`,
+    description: product.descripcion?.replace(/<[^>]*>/g, '').substring(0, 160) || `Comprá ${product.nombre} al mejor precio en Don Negro Comercial, Asunción Paraguay.`,
+    alternates: {
+      canonical: `https://www.donegro.com/${product.url_slug}`,
+    },
     openGraph: {
-      title: product.nombre,
-      description: product.descripcion?.substring(0, 160),
-      images: [product.imagen_url, ...previousImages],
+      type: 'website',
+      locale: 'es_PY',
+      url: `https://www.donegro.com/${product.url_slug}`,
+      title: `${product.nombre} | Don Negro Comercial`,
+      description: product.descripcion?.replace(/<[^>]*>/g, '').substring(0, 160) || `Comprá ${product.nombre} al mejor precio en Don Negro Comercial.`,
+      images: product.imagen_url
+        ? [{ url: product.imagen_url, width: 800, height: 800, alt: product.nombre }]
+        : [{ url: 'https://www.donegro.com/og-image.jpg', width: 1200, height: 630, alt: 'Don Negro Comercial' }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${product.nombre} | Don Negro Comercial`,
+      description: product.descripcion?.replace(/<[^>]*>/g, '').substring(0, 160) || `Comprá ${product.nombre} al mejor precio en Don Negro Comercial.`,
+      images: product.imagen_url ? [product.imagen_url] : ['https://www.donegro.com/og-image.jpg'],
     },
   };
 }

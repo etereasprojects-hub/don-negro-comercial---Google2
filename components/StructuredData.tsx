@@ -5,25 +5,35 @@ export default function StructuredData() {
     name: 'Don Negro Comercial',
     description: 'Comercial de electrónica, electrodomésticos, muebles, indumentaria deportiva y aire acondicionado en Asunción, Paraguay',
     url: 'https://www.donegro.com',
-    telephone: '+595-XXX-XXXXXX',
+    telephone: '+595981800198',
     address: {
       '@type': 'PostalAddress',
+      streetAddress: 'Asunción Supercentro Local 121, Planta Baja, Oliva c/ 14 de Mayo',
       addressLocality: 'Asunción',
       addressCountry: 'PY'
     },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: -25.282825,
+      longitude: -57.638153
+    },
+    sameAs: [
+      'https://wa.me/595975500330',
+      'https://wa.me/595981800198'
+    ],
     priceRange: '₲₲',
     openingHoursSpecification: [
       {
         '@type': 'OpeningHoursSpecification',
         dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        opens: '08:00',
+        opens: '09:00',
         closes: '18:00'
       },
       {
         '@type': 'OpeningHoursSpecification',
         dayOfWeek: 'Saturday',
-        opens: '08:00',
-        closes: '13:00'
+        opens: '09:00',
+        closes: '12:00'
       }
     ],
     paymentAccepted: ['Cash', 'Credit Card', 'Debit Card'],
