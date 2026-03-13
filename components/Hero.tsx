@@ -29,14 +29,14 @@ export default function Hero({ heroImage }: HeroProps) {
   return (
     <section
       id="inicio"
-      className="relative flex flex-col pt-20 md:pt-24 overflow-hidden bg-[#F7F7F9] min-h-[calc(100vh-0px)]"
+      className="relative flex flex-col pt-28 md:pt-24 overflow-hidden bg-[#F7F7F9] min-h-[calc(100vh-0px)]"
     >
       <div className="container mx-auto px-4 relative z-10 flex flex-col flex-1 justify-center">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center mb-6">
           
           {/* Columna izquierda — texto */}
           <div className="space-y-6">
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-[1.05] tracking-tight text-[#1A1A2E]">
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold leading-[1.05] tracking-tight text-[#1A1A2E]">
               Todo para<br />
               Tu{' '}
               <span
@@ -47,7 +47,7 @@ export default function Hero({ heroImage }: HeroProps) {
               </span>
             </h1>
 
-            <p className="text-xl sm:text-2xl text-gray-600 font-medium leading-relaxed">
+            <p className="text-lg sm:text-xl text-gray-600 font-medium leading-relaxed">
               Electrónica, Electrodomésticos, Muebles,<br className="hidden sm:block" />
               Indumentaria Deportiva y Más
             </p>
@@ -72,7 +72,7 @@ export default function Hero({ heroImage }: HeroProps) {
             <Button
               size="lg"
               onClick={scrollToSection}
-              className="relative overflow-hidden bg-[#D91E7A] hover:bg-[#6B4199] text-white px-10 py-7 text-xl font-bold shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 group"
+              className="relative overflow-hidden bg-[#D91E7A] hover:bg-[#6B4199] text-white px-6 py-4 md:px-10 md:py-7 text-base md:text-xl font-bold shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 group"
             >
               <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
               <ShoppingCart className="mr-2 h-5 w-5" />
