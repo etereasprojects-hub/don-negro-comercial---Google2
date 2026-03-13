@@ -29,14 +29,14 @@ export default function Hero({ heroImage }: HeroProps) {
   return (
     <section
       id="inicio"
-      className="relative pt-28 md:pt-32 pb-8 overflow-hidden bg-[#F7F7F9]"
+      className="relative flex flex-col pt-20 md:pt-24 overflow-hidden bg-[#F7F7F9] min-h-[calc(100vh-0px)]"
     >
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-4 items-center mb-6">
+      <div className="container mx-auto px-4 relative z-10 flex flex-col flex-1 justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center mb-6">
           
           {/* Columna izquierda — texto */}
           <div className="space-y-6">
-            <h1 className="text-6xl sm:text-7xl md:text-8xl font-extrabold leading-[1.05] tracking-tight text-[#1A1A2E]">
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-[1.05] tracking-tight text-[#1A1A2E]">
               Todo para<br />
               Tu{' '}
               <span
@@ -112,11 +112,11 @@ export default function Hero({ heroImage }: HeroProps) {
               <Image
                 src={heroImage}
                 alt="Productos Don Negro Comercial"
-                width={580}
-                height={580}
-                className="object-contain drop-shadow-2xl w-full max-w-[580px]"
+                width={800}
+                height={600}
+                className="object-contain drop-shadow-2xl w-full"
                 priority
-                sizes="(max-width: 768px) 90vw, 580px"
+                sizes="(max-width: 768px) 90vw, 50vw"
               />
             ) : (
               <div className="w-full h-[400px] flex items-center justify-center">
@@ -127,7 +127,7 @@ export default function Hero({ heroImage }: HeroProps) {
         </div>
 
         {/* Buscador desktop */}
-        <div className="max-w-3xl mx-auto hidden lg:block mt-2">
+        <div className="max-w-3xl mx-auto hidden lg:block mt-auto pt-8 pb-8">
           <form onSubmit={handleSearch} className="relative" role="search" aria-label="Búsqueda de productos">
             <div className="bg-white rounded-full overflow-hidden flex items-center shadow-md border border-gray-100">
               <Search className="ml-6 h-6 w-6 text-[#D91E7A]" aria-hidden="true" />
