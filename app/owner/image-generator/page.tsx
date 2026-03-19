@@ -263,14 +263,42 @@ export default function ImageGeneratorPage() {
                         </div>
 
                         {/* Financiación */}
-                        {prices && (prices.disponible12Meses || prices.disponible6Meses) && (
-                          <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl text-center">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">¡Llevalo en cuotas!</p>
-                            <div className="flex justify-center items-baseline gap-1">
-                              <span className="text-xs font-bold text-slate-500 uppercase">Desde</span>
-                              <p className="text-3xl font-black text-[#6B4199] tracking-tighter">
-                                {formatCurrency(prices.cuota12Meses || prices.cuota6Meses)}
-                              </p>
+                        {prices && (prices.disponible6Meses || prices.disponible12Meses || prices.disponible15Meses || prices.disponible18Meses) && (
+                          <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 text-center">Opciones de Financiación</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {prices.disponible6Meses && (
+                                <div className="bg-white p-2 rounded-xl border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[8px] font-bold text-slate-400 uppercase">6 Cuotas</span>
+                                  <p className="text-lg font-black text-[#6B4199] tracking-tighter">
+                                    {formatCurrency(prices.cuota6Meses)}
+                                  </p>
+                                </div>
+                              )}
+                              {prices.disponible12Meses && (
+                                <div className="bg-white p-2 rounded-xl border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[8px] font-bold text-slate-400 uppercase">12 Cuotas</span>
+                                  <p className="text-lg font-black text-[#6B4199] tracking-tighter">
+                                    {formatCurrency(prices.cuota12Meses)}
+                                  </p>
+                                </div>
+                              )}
+                              {prices.disponible15Meses && (
+                                <div className="bg-white p-2 rounded-xl border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[8px] font-bold text-slate-400 uppercase">15 Cuotas</span>
+                                  <p className="text-lg font-black text-[#6B4199] tracking-tighter">
+                                    {formatCurrency(prices.cuota15Meses)}
+                                  </p>
+                                </div>
+                              )}
+                              {prices.disponible18Meses && (
+                                <div className="bg-white p-2 rounded-xl border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[8px] font-bold text-slate-400 uppercase">18 Cuotas</span>
+                                  <p className="text-lg font-black text-[#6B4199] tracking-tighter">
+                                    {formatCurrency(prices.cuota18Meses)}
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
