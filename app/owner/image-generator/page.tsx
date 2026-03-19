@@ -212,12 +212,9 @@ export default function ImageGeneratorPage() {
                   <div 
                     ref={frameRef}
                     className="w-[360px] h-[640px] bg-white shadow-2xl overflow-hidden relative flex flex-col"
-                    style={{ 
-                      backgroundImage: 'linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%)',
-                    }}
                   >
-                    {/* Imagen del Producto con Logo Superpuesto */}
-                    <div className="flex-1 relative bg-white overflow-hidden">
+                    {/* 50% Imagen del Producto */}
+                    <div className="h-[320px] relative bg-white overflow-hidden flex items-center justify-center p-4">
                       <img 
                         src={getProxiedUrl(selectedProduct.imagen_url)} 
                         alt={selectedProduct.nombre}
@@ -242,59 +239,65 @@ export default function ImageGeneratorPage() {
                       </div>
                     </div>
 
-                    {/* Info del Producto */}
-                    <div className="p-6 space-y-4 bg-white rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.1)] relative z-10">
-                      <div className="text-center space-y-1">
-                        <h2 className="text-xl font-black text-[#2E3A52] leading-tight uppercase tracking-tighter line-clamp-2 px-2">
+                    {/* 10% Texto de Disponibilidad */}
+                    <div className="h-[64px] flex flex-col items-center justify-center bg-slate-50 border-y border-slate-100">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#D91E7A]">disponible en www.donegro.com</p>
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">envios a todo el pais</p>
+                    </div>
+
+                    {/* 40% Area de Precios y Financiación */}
+                    <div className="h-[256px] p-4 flex flex-col justify-center space-y-3 bg-white relative z-10">
+                      <div className="text-center space-y-0.5">
+                        <h2 className="text-lg font-black text-[#2E3A52] leading-tight uppercase tracking-tighter line-clamp-1 px-2">
                           {selectedProduct.nombre}
                         </h2>
-                        <div className="inline-block bg-slate-100 px-3 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-500">
+                        <div className="inline-block bg-slate-100 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest text-slate-500">
                           {selectedProduct.categoria}
                         </div>
                       </div>
 
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {/* Precio Contado */}
-                        <div className="bg-gradient-to-r from-[#D91E7A] to-[#6B4199] p-4 rounded-2xl text-white text-center shadow-lg transform scale-105">
-                          <p className="text-[9px] font-black uppercase tracking-widest opacity-90 mb-0.5">Precio Contado</p>
-                          <p className="text-4xl font-black tracking-tighter">
+                        <div className="bg-gradient-to-r from-[#D91E7A] to-[#6B4199] py-2 px-4 rounded-xl text-white text-center shadow-md">
+                          <p className="text-[8px] font-black uppercase tracking-widest opacity-90 mb-0.5">Precio Contado</p>
+                          <p className="text-3xl font-black tracking-tighter">
                             {prices ? formatCurrency(prices.precioContado) : "---"}
                           </p>
                         </div>
 
                         {/* Financiación */}
                         {prices && (prices.disponible6Meses || prices.disponible12Meses || prices.disponible15Meses || prices.disponible18Meses) && (
-                          <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 text-center">Opciones de Financiación</p>
-                            <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-slate-50 border border-slate-100 p-2 rounded-xl">
+                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5 text-center">Opciones de Financiación</p>
+                            <div className="grid grid-cols-2 gap-1.5">
                               {prices.disponible6Meses && (
-                                <div className="bg-white p-2 rounded-xl border border-slate-100 flex flex-col items-center">
-                                  <span className="text-[8px] font-bold text-slate-400 uppercase">6 Cuotas</span>
-                                  <p className="text-lg font-black text-[#6B4199] tracking-tighter">
+                                <div className="bg-white p-1.5 rounded-lg border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[7px] font-bold text-slate-400 uppercase">6 Cuotas</span>
+                                  <p className="text-base font-black text-[#6B4199] tracking-tighter">
                                     {formatCurrency(prices.cuota6Meses)}
                                   </p>
                                 </div>
                               )}
                               {prices.disponible12Meses && (
-                                <div className="bg-white p-2 rounded-xl border border-slate-100 flex flex-col items-center">
-                                  <span className="text-[8px] font-bold text-slate-400 uppercase">12 Cuotas</span>
-                                  <p className="text-lg font-black text-[#6B4199] tracking-tighter">
+                                <div className="bg-white p-1.5 rounded-lg border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[7px] font-bold text-slate-400 uppercase">12 Cuotas</span>
+                                  <p className="text-base font-black text-[#6B4199] tracking-tighter">
                                     {formatCurrency(prices.cuota12Meses)}
                                   </p>
                                 </div>
                               )}
                               {prices.disponible15Meses && (
-                                <div className="bg-white p-2 rounded-xl border border-slate-100 flex flex-col items-center">
-                                  <span className="text-[8px] font-bold text-slate-400 uppercase">15 Cuotas</span>
-                                  <p className="text-lg font-black text-[#6B4199] tracking-tighter">
+                                <div className="bg-white p-1.5 rounded-lg border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[7px] font-bold text-slate-400 uppercase">15 Cuotas</span>
+                                  <p className="text-base font-black text-[#6B4199] tracking-tighter">
                                     {formatCurrency(prices.cuota15Meses)}
                                   </p>
                                 </div>
                               )}
                               {prices.disponible18Meses && (
-                                <div className="bg-white p-2 rounded-xl border border-slate-100 flex flex-col items-center">
-                                  <span className="text-[8px] font-bold text-slate-400 uppercase">18 Cuotas</span>
-                                  <p className="text-lg font-black text-[#6B4199] tracking-tighter">
+                                <div className="bg-white p-1.5 rounded-lg border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[7px] font-bold text-slate-400 uppercase">18 Cuotas</span>
+                                  <p className="text-base font-black text-[#6B4199] tracking-tighter">
                                     {formatCurrency(prices.cuota18Meses)}
                                   </p>
                                 </div>
@@ -302,15 +305,6 @@ export default function ImageGeneratorPage() {
                             </div>
                           </div>
                         )}
-                      </div>
-
-                      <div className="text-center space-y-1 pt-1">
-                        <p className="text-[10px] font-black text-[#6B4199] uppercase tracking-wider">
-                          disponible en www.donegro.com
-                        </p>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-                          Envíos a todo el país
-                        </p>
                       </div>
                     </div>
 
