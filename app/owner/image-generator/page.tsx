@@ -246,58 +246,58 @@ export default function ImageGeneratorPage() {
                     </div>
 
                     {/* 40% Area de Precios y Financiación */}
-                    <div className="h-[256px] p-4 flex flex-col justify-center space-y-3 bg-white relative z-10">
+                    <div className="h-[256px] p-3 flex flex-col justify-center space-y-2 bg-white relative z-10">
                       <div className="text-center space-y-0.5">
-                        <h2 className="text-lg font-black text-[#2E3A52] leading-tight uppercase tracking-tighter line-clamp-1 px-2">
+                        <h2 className="text-base font-black text-[#2E3A52] leading-tight uppercase tracking-tighter line-clamp-1 px-2">
                           {selectedProduct.nombre}
                         </h2>
-                        <div className="inline-block bg-slate-100 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest text-slate-500">
+                        <div className="inline-block bg-slate-100 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest text-slate-500">
                           {selectedProduct.categoria}
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {/* Precio Contado */}
-                        <div className="bg-gradient-to-r from-[#D91E7A] to-[#6B4199] py-2 px-4 rounded-xl text-white text-center shadow-md">
-                          <p className="text-[8px] font-black uppercase tracking-widest opacity-90 mb-0.5">Precio Contado</p>
-                          <p className="text-3xl font-black tracking-tighter">
+                        <div className="bg-gradient-to-r from-[#D91E7A] to-[#6B4199] py-1.5 px-4 rounded-xl text-white text-center shadow-md">
+                          <p className="text-[7px] font-black uppercase tracking-widest opacity-90 mb-0.5">Precio Contado</p>
+                          <p className="text-2xl font-black tracking-tighter">
                             {prices ? formatCurrency(prices.precioContado) : "---"}
                           </p>
                         </div>
 
                         {/* Financiación */}
                         {prices && (prices.disponible6Meses || prices.disponible12Meses || prices.disponible15Meses || prices.disponible18Meses) && (
-                          <div className="bg-slate-50 border border-slate-100 p-2 rounded-xl">
-                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5 text-center">Opciones de Financiación</p>
-                            <div className="grid grid-cols-2 gap-1.5">
+                          <div className="bg-slate-50 border border-slate-100 p-1.5 rounded-xl">
+                            <p className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-1 text-center">Opciones de Financiación</p>
+                            <div className="grid grid-cols-2 gap-1">
                               {prices.disponible6Meses && (
-                                <div className="bg-white p-1.5 rounded-lg border border-slate-100 flex flex-col items-center">
-                                  <span className="text-[7px] font-bold text-slate-400 uppercase">6 Cuotas</span>
-                                  <p className="text-base font-black text-[#6B4199] tracking-tighter">
+                                <div className="bg-white p-1 rounded-lg border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[6px] font-bold text-slate-400 uppercase">6 Cuotas</span>
+                                  <p className="text-sm font-black text-[#6B4199] tracking-tighter">
                                     {formatCurrency(prices.cuota6Meses)}
                                   </p>
                                 </div>
                               )}
                               {prices.disponible12Meses && (
-                                <div className="bg-white p-1.5 rounded-lg border border-slate-100 flex flex-col items-center">
-                                  <span className="text-[7px] font-bold text-slate-400 uppercase">12 Cuotas</span>
-                                  <p className="text-base font-black text-[#6B4199] tracking-tighter">
+                                <div className="bg-white p-1 rounded-lg border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[6px] font-bold text-slate-400 uppercase">12 Cuotas</span>
+                                  <p className="text-sm font-black text-[#6B4199] tracking-tighter">
                                     {formatCurrency(prices.cuota12Meses)}
                                   </p>
                                 </div>
                               )}
                               {prices.disponible15Meses && (
-                                <div className="bg-white p-1.5 rounded-lg border border-slate-100 flex flex-col items-center">
-                                  <span className="text-[7px] font-bold text-slate-400 uppercase">15 Cuotas</span>
-                                  <p className="text-base font-black text-[#6B4199] tracking-tighter">
+                                <div className="bg-white p-1 rounded-lg border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[6px] font-bold text-slate-400 uppercase">15 Cuotas</span>
+                                  <p className="text-sm font-black text-[#6B4199] tracking-tighter">
                                     {formatCurrency(prices.cuota15Meses)}
                                   </p>
                                 </div>
                               )}
                               {prices.disponible18Meses && (
-                                <div className="bg-white p-1.5 rounded-lg border border-slate-100 flex flex-col items-center">
-                                  <span className="text-[7px] font-bold text-slate-400 uppercase">18 Cuotas</span>
-                                  <p className="text-base font-black text-[#6B4199] tracking-tighter">
+                                <div className="bg-white p-1 rounded-lg border border-slate-100 flex flex-col items-center">
+                                  <span className="text-[6px] font-bold text-slate-400 uppercase">18 Cuotas</span>
+                                  <p className="text-sm font-black text-[#6B4199] tracking-tighter">
                                     {formatCurrency(prices.cuota18Meses)}
                                   </p>
                                 </div>
