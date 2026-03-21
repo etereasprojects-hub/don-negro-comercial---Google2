@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Package, ShoppingCart, TrendingUp, CreditCard, MessageSquare, Calendar, MessageCircle, Brain, Receipt, Settings, Image, Plug, FolderTree, Beaker, Database, Share2 } from "lucide-react";
+import { Package, ShoppingCart, TrendingUp, CreditCard, MessageSquare, Calendar, MessageCircle, Brain, Receipt, Settings, Image, Plug, FolderTree, Beaker, Database, Share2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface AdminTabsProps {
@@ -14,6 +14,7 @@ const tabs = [
   { id: "generador", label: "Generador", icon: Share2, count: null },
   { id: "categorias", label: "Categorías", icon: FolderTree, count: null },
   { id: "pedidos", label: "Pedidos", icon: ShoppingCart, count: null },
+  { id: "clientes", label: "Clientes", icon: Users, count: null },
   { id: "ventas", label: "Ventas", icon: TrendingUp, count: null },
   { id: "creditos", label: "Pagos a Crédito", icon: CreditCard, count: null },
   { id: "test-pago", label: "Test Pago", icon: Beaker, count: null },
@@ -37,6 +38,7 @@ export default function AdminTabs({ activeTab }: AdminTabsProps) {
       "generador": "/owner/image-generator",
       "categorias": "/owner/categorias",
       "pedidos": "/owner/pedidos",
+      "clientes": "/owner/clientes",
       "ventas": "/owner/ventas",
       "creditos": "/owner/creditos",
       "test-pago": "/owner/test-pago",

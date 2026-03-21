@@ -24,7 +24,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, LayoutGrid, Eye, MapPin, Loader2, Package, CreditCard, Edit, DollarSign } from "lucide-react";
+import { Plus, LayoutGrid, Eye, MapPin, Loader2, Package, CreditCard, Edit, DollarSign, Tag } from "lucide-react";
 
 interface Product {
   id?: string;
@@ -42,6 +42,8 @@ interface Product {
   interes_12_meses_porcentaje: number | string;
   interes_15_meses_porcentaje: number | string;
   interes_18_meses_porcentaje: number | string;
+  precio_mayorista?: number;
+  factor_mayorista?: number | null;
   stock: number;
   ubicacion: string;
   fastrax_id_sucursal?: string;
@@ -50,7 +52,7 @@ interface Product {
   imagenes_extra?: string[];
   video_url?: string;
   destacado: boolean;
-  show_in_hero?: boolean;
+  show_in_hero: boolean;
   source?: string;
 }
 
@@ -85,6 +87,8 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
     interes_12_meses_porcentaje: 75,
     interes_15_meses_porcentaje: 85,
     interes_18_meses_porcentaje: 0,
+    precio_mayorista: 0,
+    factor_mayorista: null as number | null,
     stock: 0,
     ubicacion: "En Local",
     fastrax_id_sucursal: "",
@@ -234,6 +238,8 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
       interes_12_meses_porcentaje: data.interes_12_meses_porcentaje != null ? Number(data.interes_12_meses_porcentaje) : 75,
       interes_15_meses_porcentaje: data.interes_15_meses_porcentaje != null ? Number(data.interes_15_meses_porcentaje) : 85,
       interes_18_meses_porcentaje: data.interes_18_meses_porcentaje != null ? Number(data.interes_18_meses_porcentaje) : 0,
+      precio_mayorista: data.precio_mayorista != null ? Number(data.precio_mayorista) : 0,
+      factor_mayorista: data.factor_mayorista != null ? Number(data.factor_mayorista) : null,
       stock: data.stock != null ? Number(data.stock) : 0,
       ubicacion: data.ubicacion || "En Local",
       fastrax_id_sucursal: data.fastrax_id_sucursal || "",
@@ -263,6 +269,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
           id: "", sku: "", nombre: "", descripcion: "", codigo_wos: "", codigo_pro: "", codigo_ext: "",
           categoria: "", url_slug: "", costo: 0, margen_porcentaje: 20, interes_6_meses_porcentaje: 50,
           interes_12_meses_porcentaje: 75, interes_15_meses_porcentaje: 85, interes_18_meses_porcentaje: 0,
+          precio_mayorista: 0, factor_mayorista: null,
           stock: 0, ubicacion: "En Local", fastrax_id_sucursal: "", estado: "Activo",
           imagen_url: "", imagenes_extra: ["", "", "", "", ""], video_url: "", destacado: false,
           show_in_hero: false, source: ""
@@ -321,6 +328,8 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
           interes_12_meses_porcentaje: Number(formData.interes_12_meses_porcentaje),
           interes_15_meses_porcentaje: Number(formData.interes_15_meses_porcentaje),
           interes_18_meses_porcentaje: Number(formData.interes_18_meses_porcentaje),
+          precio_mayorista: Number(formData.precio_mayorista),
+          factor_mayorista: formData.factor_mayorista,
           stock: Number(formData.stock),
           imagenes_extra: formData.imagenes_extra.filter(i => i.trim() !== ""),
           destacado: formData.destacado,
@@ -602,12 +611,57 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                     </div>
                   </div>
 
+                  {/* Precio Mayorista */}
+                  <div className="bg-green-50 p-6 rounded-3xl border border-green-200 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-black text-xs uppercase text-emerald-700 tracking-widest flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-emerald-600" /> Precio Mayorista
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="use-factor" className="text-[10px] font-bold uppercase text-emerald-700">Usar factor de cálculo</Label>
+                        <Switch 
+                          id="use-factor" 
+                          checked={formData.factor_mayorista !== null} 
+                          onCheckedChange={(checked) => setFormData({ ...formData, factor_mayorista: checked ? 0.85 : null })} 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {formData.factor_mayorista !== null ? (
+                        <div className="space-y-2">
+                          <Label className="text-[10px] uppercase font-black text-emerald-700">Factor sobre precio contado (ej: 0.85 = 15% desc)</Label>
+                          <Input 
+                            type="number" 
+                            step="0.01"
+                            value={formData.factor_mayorista} 
+                            onChange={e => setFormData({...formData, factor_mayorista: Number(e.target.value)})} 
+                            className="h-11 font-black text-base border-2 border-emerald-100" 
+                          />
+                          <p className="text-[10px] font-bold text-emerald-600 italic">
+                            Precio calculado: {formatCurrency(currentPrices.precioContado * (formData.factor_mayorista || 0))}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label className="text-[10px] uppercase font-black text-emerald-700">Precio Mayorista Manual (₲)</Label>
+                          <Input 
+                            type="number" 
+                            value={formData.precio_mayorista} 
+                            onChange={e => setFormData({...formData, precio_mayorista: Number(e.target.value)})} 
+                            className="h-11 font-black text-base border-2 border-emerald-100" 
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Flags de Visibilidad */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                     <div className="flex items-center justify-between p-4 bg-white rounded-2xl border shadow-sm">
                       <div className="space-y-0.5">
                         <Label htmlFor="destacado" className="font-black text-slate-800">Producto Destacado</Label>
-                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Aparecer en grilla "Top Choice"</p>
+                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Aparecer en grilla &quot;Top Choice&quot;</p>
                       </div>
                       <Switch id="destacado" checked={formData.destacado} onCheckedChange={v => setFormData({...formData, destacado: v})} />
                     </div>
