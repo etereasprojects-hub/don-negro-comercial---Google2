@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Facebook, Instagram, Twitter } from 'lucide-react';
+import { Menu, X, Facebook, Instagram, Twitter, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { FaTiktok, FaReddit, FaLinkedin, FaYoutube, FaWhatsapp } from 'react-icons/fa';
@@ -145,6 +145,13 @@ export default function Header() {
             >
               Catálogo
             </Link>
+            <Link
+              href="/login"
+              className="flex items-center gap-2 bg-[#2E3A52] hover:bg-[#D91E7A] text-white text-sm font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all"
+            >
+              <LogIn className="w-4 h-4" />
+              Acceso
+            </Link>
             <button
               onClick={() => scrollToSection('nosotros')}
               className="text-gray-700 hover:text-[#D91E7A] transition-colors font-medium"
@@ -229,6 +236,14 @@ export default function Header() {
               className="text-left text-gray-700 hover:text-[#D91E7A] transition-colors font-medium py-2"
             >
               Catálogo
+            </Link>
+            <Link
+              href="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 text-left text-[#2E3A52] hover:text-[#D91E7A] transition-colors font-black uppercase tracking-widest py-2"
+            >
+              <LogIn className="w-4 h-4" />
+              Acceso Mayorista
             </Link>
             <button
               onClick={() => scrollToSection('nosotros')}
