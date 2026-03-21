@@ -43,6 +43,7 @@ export default function OwnerLoginPage() {
           return;
         }
 
+        router.refresh();
         router.push("/owner/dashboard");
       }
     } catch (err: any) {
