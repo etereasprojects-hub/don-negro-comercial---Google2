@@ -53,6 +53,7 @@ interface Product {
   video_url?: string;
   destacado: boolean;
   show_in_hero: boolean;
+  min_cantidad_mayorista?: number;
   source?: string;
 }
 
@@ -89,6 +90,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
     interes_18_meses_porcentaje: 0,
     precio_mayorista: 0,
     factor_mayorista: null as number | null,
+    min_cantidad_mayorista: 1,
     stock: 0,
     ubicacion: "En Local",
     fastrax_id_sucursal: "",
@@ -240,6 +242,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
       interes_18_meses_porcentaje: data.interes_18_meses_porcentaje != null ? Number(data.interes_18_meses_porcentaje) : 0,
       precio_mayorista: data.precio_mayorista != null ? Number(data.precio_mayorista) : 0,
       factor_mayorista: data.factor_mayorista != null ? Number(data.factor_mayorista) : null,
+      min_cantidad_mayorista: data.min_cantidad_mayorista ?? 1,
       stock: data.stock != null ? Number(data.stock) : 0,
       ubicacion: data.ubicacion || "En Local",
       fastrax_id_sucursal: data.fastrax_id_sucursal || "",
@@ -269,7 +272,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
           id: "", sku: "", nombre: "", descripcion: "", codigo_wos: "", codigo_pro: "", codigo_ext: "",
           categoria: "", url_slug: "", costo: 0, margen_porcentaje: 20, interes_6_meses_porcentaje: 50,
           interes_12_meses_porcentaje: 75, interes_15_meses_porcentaje: 85, interes_18_meses_porcentaje: 0,
-          precio_mayorista: 0, factor_mayorista: null,
+          precio_mayorista: 0, factor_mayorista: null, min_cantidad_mayorista: 1,
           stock: 0, ubicacion: "En Local", fastrax_id_sucursal: "", estado: "Activo",
           imagen_url: "", imagenes_extra: ["", "", "", "", ""], video_url: "", destacado: false,
           show_in_hero: false, source: ""
@@ -311,6 +314,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
           interes_12_meses_porcentaje: Number(formData.interes_12_meses_porcentaje),
           interes_15_meses_porcentaje: Number(formData.interes_15_meses_porcentaje),
           interes_18_meses_porcentaje: Number(formData.interes_18_meses_porcentaje),
+          min_cantidad_mayorista: Number(formData.min_cantidad_mayorista),
           destacado: formData.destacado,
           show_in_hero: formData.show_in_hero,
           updated_at: new Date().toISOString()
@@ -330,6 +334,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
           interes_18_meses_porcentaje: Number(formData.interes_18_meses_porcentaje),
           precio_mayorista: Number(formData.precio_mayorista),
           factor_mayorista: formData.factor_mayorista,
+          min_cantidad_mayorista: Number(formData.min_cantidad_mayorista),
           stock: Number(formData.stock),
           imagenes_extra: formData.imagenes_extra.filter(i => i.trim() !== ""),
           destacado: formData.destacado,
@@ -653,6 +658,23 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                           />
                         </div>
                       )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase font-black text-amber-600">
+                        Cantidad Mínima Mayorista
+                      </Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={formData.min_cantidad_mayorista}
+                        onChange={e => setFormData({...formData, min_cantidad_mayorista: Number(e.target.value)})}
+                        className="h-11 font-bold border-2 border-amber-100"
+                        placeholder="Ej: 5"
+                      />
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        Unidades mínimas que el cliente debe agregar al carrito para habilitar la compra.
+                      </p>
                     </div>
                   </div>
 
