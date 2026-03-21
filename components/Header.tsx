@@ -145,13 +145,6 @@ export default function Header() {
             >
               Catálogo
             </Link>
-            <Link
-              href="/login"
-              className="flex items-center gap-2 bg-[#2E3A52] hover:bg-[#D91E7A] text-white text-sm font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all"
-            >
-              <LogIn className="w-4 h-4" />
-              Acceso
-            </Link>
             <button
               onClick={() => scrollToSection('nosotros')}
               className="text-gray-700 hover:text-[#D91E7A] transition-colors font-medium"
@@ -213,6 +206,14 @@ export default function Header() {
             )}
           </nav>
 
+          <Link
+            href="/login"
+            className="hidden md:flex items-center gap-2 bg-[#D91E7A] hover:bg-[#6B4199] text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
+          >
+            <LogIn className="w-4 h-4" />
+            Acceso
+          </Link>
+
           <button
             className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -240,7 +241,7 @@ export default function Header() {
             <Link
               href="/login"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 text-left text-[#2E3A52] hover:text-[#D91E7A] transition-colors font-black uppercase tracking-widest py-2"
+              className="text-left text-gray-700 hover:text-[#D91E7A] transition-colors font-medium py-2 flex items-center gap-2"
             >
               <LogIn className="w-4 h-4" />
               Acceso Mayorista
