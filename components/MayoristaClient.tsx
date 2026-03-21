@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { supabase } from "@/lib/supabase";
 import { calculatePrices, formatCurrency } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -221,19 +222,7 @@ export default function MayoristaClient({ initialProducts, userEmail }: Mayorist
   const canCheckout = itemsInvalidos.length === 0;
   const cartTotal = wholesaleCart.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
 
-  useEffect(() => {
-    const searchQuery = searchParams.get('search');
-    if (searchQuery) setSearchTerm(searchQuery);
-    
-    const cats = Array.from(new Set(initialProducts.map((p) => p.categoria).filter(Boolean)));
-    setCategories(cats as string[]);
-  }, [searchParams, initialProducts]);
-
-  useEffect(() => {
-    filterProducts();
-  }, [filterProducts]);
-
-  const getWholesalePrice = (product: Product) => {
+  const getWholesalePrice = useCallback((product: Product) => {
     const basePrices = calculatePrices({
       costo: Number(product.costo ?? 0),
       margen_porcentaje: Number(product.margen_porcentaje ?? 18),
@@ -252,7 +241,7 @@ export default function MayoristaClient({ initialProducts, userEmail }: Mayorist
     }
 
     return null;
-  };
+  }, []);
 
   const filterProducts = useCallback(() => {
     let filtered = [...products];
@@ -288,10 +277,22 @@ export default function MayoristaClient({ initialProducts, userEmail }: Mayorist
 
     setFilteredProducts(filtered);
     setVisibleCount(24);
-  }, [products, searchTerm, selectedCategories, selectedDeliveries, priceRange]);
+  }, [products, searchTerm, selectedCategories, selectedDeliveries, priceRange, getWholesalePrice]);
+
+  useEffect(() => {
+    const searchQuery = searchParams.get('search');
+    if (searchQuery) setSearchTerm(searchQuery);
+    
+    const cats = Array.from(new Set(initialProducts.map((p) => p.categoria).filter(Boolean)));
+    setCategories(cats as string[]);
+  }, [searchParams, initialProducts]);
+
+  useEffect(() => {
+    filterProducts();
+  }, [filterProducts]);
 
   const handleLogout = async () => {
-    await fetch("/app/login/logout", { method: "POST" });
+    await fetch("/login/logout", { method: "POST" });
     router.push("/productos");
     router.refresh();
   };
