@@ -49,7 +49,6 @@ const SECTIONS = [
 
 export default function BannersPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [selectedSection, setSelectedSection] = useState<string>("hero_featured");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -67,19 +66,8 @@ export default function BannersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const auth = localStorage.getItem("ownerAuth");
-    if (auth !== "true") {
-      router.push("/owner");
-    } else {
-      setIsAuthenticated(true);
-    }
-  }, [router]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadBanners();
-    }
-  }, [selectedSection, isAuthenticated]);
+    loadBanners();
+  }, [selectedSection]);
 
   const loadBanners = async () => {
     setLoading(true);
@@ -261,8 +249,6 @@ export default function BannersPage() {
       console.error("Error reordering banners:", error);
     }
   };
-
-  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">

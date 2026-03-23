@@ -37,7 +37,6 @@ interface SyncLog {
 
 export default function ConexionAPIPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [logs, setLogs] = useState<SyncLog[]>([]);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,18 +45,10 @@ export default function ConexionAPIPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
-    const auth = localStorage.getItem("ownerAuth");
-    if (auth !== "true") {
-      router.push("/owner");
-    } else {
-      setIsAuthenticated(true);
-      loadData();
-    }
-  }, [router]);
+    loadData();
+  }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-
     const subscription = supabase
       .channel("api_logs_changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "api_sync_logs" }, () => {
@@ -68,7 +59,7 @@ export default function ConexionAPIPage() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [isAuthenticated]);
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -135,10 +126,6 @@ export default function ConexionAPIPage() {
     incoming: logs.filter((l) => l.direction === "incoming").length,
     outgoing: logs.filter((l) => l.direction === "outgoing").length,
   };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -312,7 +299,7 @@ export default function ConexionAPIPage() {
               <CardContent className="pt-6">
                 <h3 className="font-semibold text-blue-900 mb-2">Cómo compartir la API Key con el Programador</h3>
                 <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800 mb-3">
-                  <li>Copia la API Key que aparece abajo (botón "Copiar")</li>
+                  <li>Copia la API Key que aparece abajo (botón &quot;Copiar&quot;)</li>
                   <li>Envíala al programador de forma segura (WhatsApp, email, etc.)</li>
                   <li>Comparte también la contraseña de verificación: <code className="bg-blue-100 px-1 rounded font-semibold">donegro2025apiverification</code></li>
                   <li>El programador podrá ver los logs de sincronización en: <code className="bg-blue-100 px-1 rounded">/api-1-verification</code></li>

@@ -50,7 +50,6 @@ const daysOfWeek = [
 
 export default function AppointmentsPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [slots, setSlots] = useState<AppointmentSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,14 +62,8 @@ export default function AppointmentsPage() {
   });
 
   useEffect(() => {
-    const auth = localStorage.getItem("ownerAuth");
-    if (auth !== "true") {
-      router.push("/owner");
-    } else {
-      setIsAuthenticated(true);
-      loadData();
-    }
-  }, [router]);
+    loadData();
+  }, []);
 
   const loadData = async () => {
     try {
@@ -174,10 +167,6 @@ export default function AppointmentsPage() {
       </Badge>
     );
   };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">

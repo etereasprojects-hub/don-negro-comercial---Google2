@@ -28,7 +28,6 @@ interface BillingInfo {
 
 export default function BillingPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [billingInfo, setBillingInfo] = useState<BillingInfo | null>(null);
@@ -47,14 +46,8 @@ export default function BillingPage() {
   });
 
   useEffect(() => {
-    const auth = localStorage.getItem("ownerAuth");
-    if (auth !== "true") {
-      router.push("/owner");
-    } else {
-      setIsAuthenticated(true);
-      loadBillingInfo();
-    }
-  }, [router]);
+    loadBillingInfo();
+  }, []);
 
   const loadBillingInfo = async () => {
     try {
@@ -105,10 +98,6 @@ export default function BillingPage() {
       setSaving(false);
     }
   };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">

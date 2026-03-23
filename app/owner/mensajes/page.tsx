@@ -24,20 +24,13 @@ interface WebMessage {
 
 export default function MessagesPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [messages, setMessages] = useState<WebMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
 
   useEffect(() => {
-    const auth = localStorage.getItem("ownerAuth");
-    if (auth !== "true") {
-      router.push("/owner");
-    } else {
-      setIsAuthenticated(true);
-      loadMessages();
-    }
-  }, [router]);
+    loadMessages();
+  }, []);
 
   const loadMessages = async () => {
     try {
@@ -92,10 +85,6 @@ export default function MessagesPage() {
       </Badge>
     );
   };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">

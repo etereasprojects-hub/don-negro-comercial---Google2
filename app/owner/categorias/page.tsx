@@ -18,7 +18,6 @@ import { Label } from "@/components/ui/label";
 
 export default function CategoriasPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -29,14 +28,8 @@ export default function CategoriasPage() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    const auth = localStorage.getItem("ownerAuth");
-    if (auth !== "true") {
-      router.push("/owner");
-    } else {
-      setIsAuthenticated(true);
-      loadCategories();
-    }
-  }, [router]);
+    loadCategories();
+  }, []);
 
   const loadCategories = async () => {
     const { data } = await supabase.from("categories").select("*").order("orden");
@@ -94,8 +87,6 @@ export default function CategoriasPage() {
       setCreating(false);
     }
   };
-
-  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">

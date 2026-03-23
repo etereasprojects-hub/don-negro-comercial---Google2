@@ -27,7 +27,6 @@ interface AIInstruction {
 
 export default function AIConfigPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [instructions, setInstructions] = useState<AIInstruction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -40,14 +39,8 @@ export default function AIConfigPage() {
   });
 
   useEffect(() => {
-    const auth = localStorage.getItem("ownerAuth");
-    if (auth !== "true") {
-      router.push("/owner");
-    } else {
-      setIsAuthenticated(true);
-      loadInstructions();
-    }
-  }, [router]);
+    loadInstructions();
+  }, []);
 
   const loadInstructions = async () => {
     try {
@@ -159,10 +152,6 @@ export default function AIConfigPage() {
       console.error("Error updating priority:", error);
     }
   };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">

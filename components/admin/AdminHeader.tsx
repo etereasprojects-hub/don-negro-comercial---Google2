@@ -31,7 +31,8 @@ export default function AdminHeader() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem("ownerAuth");
     router.push("/owner");
   };

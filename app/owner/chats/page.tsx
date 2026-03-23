@@ -30,20 +30,13 @@ interface AIChat {
 
 export default function ChatsPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [chats, setChats] = useState<AIChat[]>([]);
   const [selectedChat, setSelectedChat] = useState<AIChat | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const auth = localStorage.getItem("ownerAuth");
-    if (auth !== "true") {
-      router.push("/owner");
-    } else {
-      setIsAuthenticated(true);
-      loadChats();
-    }
-  }, [router]);
+    loadChats();
+  }, []);
 
   const loadChats = async () => {
     try {
@@ -61,10 +54,6 @@ export default function ChatsPage() {
       setLoading(false);
     }
   };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">

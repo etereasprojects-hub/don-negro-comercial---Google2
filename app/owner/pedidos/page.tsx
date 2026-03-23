@@ -7,22 +7,6 @@ import AdminTabs from "@/components/admin/AdminTabs";
 import OrdersTable from "@/components/admin/OrdersTable";
 
 export default function OrdersPage() {
-  const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    const auth = localStorage.getItem("ownerAuth");
-    if (auth !== "true") {
-      router.push("/owner");
-    } else {
-      setIsAuthenticated(true);
-    }
-  }, [router]);
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminHeader />

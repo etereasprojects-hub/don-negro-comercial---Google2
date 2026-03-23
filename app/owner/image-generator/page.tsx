@@ -34,7 +34,6 @@ interface StoreConfig {
 
 export default function ImageGeneratorPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -45,14 +44,8 @@ export default function ImageGeneratorPage() {
   const frameRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const auth = localStorage.getItem("ownerAuth");
-    if (auth !== "true") {
-      router.push("/owner");
-    } else {
-      setIsAuthenticated(true);
-      loadData();
-    }
-  }, [router]);
+    loadData();
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -118,8 +111,6 @@ export default function ImageGeneratorPage() {
       setGenerating(false);
     }
   };
-
-  if (!isAuthenticated) return null;
 
   const prices = selectedProduct ? calculatePrices({
     costo: Number(selectedProduct.costo ?? 0),

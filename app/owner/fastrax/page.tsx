@@ -31,7 +31,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 export default function OwnerFastraxPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Vista y Filtros
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,14 +51,8 @@ export default function OwnerFastraxPage() {
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
 
   useEffect(() => {
-    const auth = localStorage.getItem("ownerAuth");
-    if (auth !== "true") {
-      router.push("/owner");
-    } else {
-      setIsAuthenticated(true);
-      loadDbProducts();
-    }
-  }, [router]);
+    loadDbProducts();
+  }, []);
 
   const loadDbProducts = async () => {
     setLoading(true);
@@ -157,8 +150,6 @@ export default function OwnerFastraxPage() {
       return matchSearch && matchUbi && matchCat;
     });
   }, [dbProducts, searchTerm, filterUbicacion, filterCategoria]);
-
-  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
