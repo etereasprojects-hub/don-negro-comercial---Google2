@@ -256,11 +256,20 @@ export default function WhatsAppChatsPage() {
             <div className="lg:col-span-2">
               {selectedChat ? (
                 <Card className="h-[calc(100vh-250px)] flex flex-col">
-                  <CardHeader className="border-b">
+                  <CardHeader className="border-b flex flex-row items-center justify-between space-y-0">
                     <CardTitle className="flex items-center gap-2">
                       <Phone className="w-5 h-5 text-green-600" />
                       {selectedChat.whatsapp_number}
                     </CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
+                      onClick={() => window.open(`https://wa.me/${selectedChat.whatsapp_number.replace(/\D/g, "")}`, "_blank")}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Abrir en WhatsApp
+                    </Button>
                   </CardHeader>
                   <CardContent className="flex-1 overflow-y-auto p-6">
                     <div className="space-y-4">
