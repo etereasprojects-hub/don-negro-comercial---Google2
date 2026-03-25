@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Package, ShoppingCart, TrendingUp, CreditCard, MessageSquare, Calendar, MessageCircle, Brain, Receipt, Settings, Image, Plug, FolderTree, Beaker, Database, Share2, Users } from "lucide-react";
+import { Package, ShoppingCart, TrendingUp, CreditCard, MessageSquare, Calendar, MessageCircle, Brain, Receipt, Settings, Image, Plug, FolderTree, Beaker, Database, Share2, Users, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface AdminTabsProps {
@@ -25,6 +25,7 @@ const tabs = [
   { id: "citas", label: "Citas", icon: Calendar, count: null },
   { id: "chats", label: "Chats", icon: MessageCircle, count: null },
   { id: "ia", label: "IA", icon: Brain, count: null },
+  { id: "whatsapp", label: "WhatsApp", icon: Phone, count: null },
   { id: "facturacion", label: "Facturación", icon: Receipt, count: null },
 ];
 
@@ -49,6 +50,7 @@ export default function AdminTabs({ activeTab }: AdminTabsProps) {
       "citas": "/owner/citas",
       "chats": "/owner/chats",
       "ia": "/owner/ia",
+      "whatsapp": "/owner/whatsapp",
       "facturacion": "/owner/facturacion"
     };
 
