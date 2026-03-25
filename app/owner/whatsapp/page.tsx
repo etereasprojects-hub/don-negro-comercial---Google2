@@ -7,9 +7,12 @@ import AdminTabs from "@/components/admin/AdminTabs";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, User, Clock, Phone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MessageCircle, User, Clock, Phone, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ChatMessage {
   role: string;
@@ -49,6 +52,30 @@ export default function WhatsAppChatsPage() {
       setLoading(false);
     }
   }, []);
+
+  const deleteChat = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("¿Estás seguro de que deseas eliminar esta conversación? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("whatsapp_ai_chats")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      
+      if (selectedChatId === id) {
+        setSelectedChatId(null);
+      }
+      loadChats();
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      alert("Error al eliminar la conversación");
+    }
+  };
 
   useEffect(() => {
     loadChats();
@@ -112,9 +139,19 @@ export default function WhatsAppChatsPage() {
                             {chat.whatsapp_number}
                           </span>
                         </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {chat.messages?.length || 0} msgs
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {chat.messages?.length || 0} msgs
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                            onClick={(e) => deleteChat(chat.id, e)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-gray-500">
                         <Clock className="w-3 h-3" />
@@ -142,18 +179,18 @@ export default function WhatsAppChatsPage() {
                           <div
                             key={index}
                             className={`flex ${
-                              msg.role === "user" ? "justify-end" : "justify-start"
+                              msg.role === "user" ? "justify-start" : "justify-end"
                             }`}
                           >
                             <div
-                              className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                              className={`max-w-[85%] rounded-lg px-4 py-2 break-words overflow-hidden ${
                                 msg.role === "user"
-                                  ? "bg-green-600 text-white"
-                                  : "bg-gray-100 text-gray-900"
+                                  ? "bg-gray-100 text-gray-900"
+                                  : "bg-green-600 text-white"
                                 }`}
                             >
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs font-medium">
+                                <span className={`text-xs font-medium ${msg.role === "user" ? "text-gray-500" : "text-green-100"}`}>
                                   {msg.role === "user" ? "Cliente" : "IA"}
                                 </span>
                                 {msg.timestamp && (
@@ -162,7 +199,11 @@ export default function WhatsAppChatsPage() {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                              <div className="text-sm prose prose-sm max-w-none dark:prose-invert prose-p:leading-relaxed prose-a:text-blue-500 prose-a:underline">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {msg.content}
+                                </ReactMarkdown>
+                              </div>
                             </div>
                           </div>
                         ))
