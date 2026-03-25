@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, User, Clock, Phone, Trash2 } from "lucide-react";
+import { MessageCircle, User, Clock, Phone, Trash2, CheckSquare, Square, X } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import ReactMarkdown from "react-markdown";
@@ -32,6 +32,8 @@ export default function WhatsAppChatsPage() {
   const router = useRouter();
   const [chats, setChats] = useState<WhatsAppChat[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const selectedChat = chats.find(c => c.id === selectedChatId) || null;
@@ -55,7 +57,7 @@ export default function WhatsAppChatsPage() {
 
   const deleteChat = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("¿Estás seguro de que deseas eliminar esta conversación? Esta acción no se puede deshacer.")) {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar esta conversación? Esta acción no se puede deshacer.")) {
       return;
     }
 
@@ -73,8 +75,42 @@ export default function WhatsAppChatsPage() {
       loadChats();
     } catch (error) {
       console.error("Error deleting chat:", error);
-      alert("Error al eliminar la conversación");
+      alert("Error al eliminar la conversación. Verifica los permisos de la base de datos.");
     }
+  };
+
+  const deleteSelectedChats = async () => {
+    if (selectedIds.length === 0) return;
+    
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar las ${selectedIds.length} conversaciones seleccionadas?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("whatsapp_ai_chats")
+        .delete()
+        .in("id", selectedIds);
+
+      if (error) throw error;
+      
+      if (selectedChatId && selectedIds.includes(selectedChatId)) {
+        setSelectedChatId(null);
+      }
+      setSelectedIds([]);
+      setIsSelectionMode(false);
+      loadChats();
+    } catch (error) {
+      console.error("Error deleting chats:", error);
+      alert("Error al eliminar las conversaciones");
+    }
+  };
+
+  const toggleSelectChat = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
   };
 
   useEffect(() => {
@@ -102,9 +138,51 @@ export default function WhatsAppChatsPage() {
       <AdminHeader />
       <AdminTabs activeTab="whatsapp" />
       <div className="max-w-[1400px] mx-auto px-6 py-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Phone className="w-6 h-6 text-green-600" />
-          <h1 className="text-2xl font-bold text-gray-900">Chats de WhatsApp IA</h1>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Phone className="w-6 h-6 text-green-600" />
+            <h1 className="text-2xl font-bold text-gray-900">Chats de WhatsApp IA</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            {isSelectionMode ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    setIsSelectionMode(false);
+                    setSelectedIds([]);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Cancelar
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={deleteSelectedChats}
+                  disabled={selectedIds.length === 0}
+                  className="flex items-center gap-2 shadow-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar ({selectedIds.length})
+                </Button>
+              </>
+            ) : (
+              chats.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsSelectionMode(true)}
+                  className="flex items-center gap-2"
+                >
+                  <CheckSquare className="w-4 h-4" />
+                  Seleccionar
+                </Button>
+              )
+            )}
+          </div>
         </div>
 
         {loading && chats.length === 0 ? (
@@ -126,15 +204,25 @@ export default function WhatsAppChatsPage() {
                 {chats.map((chat) => (
                   <Card
                     key={chat.id}
-                    className={`cursor-pointer transition-all hover:shadow-md ${
+                    className={`cursor-pointer transition-all hover:shadow-md relative ${
                       selectedChatId === chat.id ? "ring-2 ring-green-500" : ""
-                    }`}
-                    onClick={() => setSelectedChatId(chat.id)}
+                    } ${selectedIds.includes(chat.id) ? "bg-green-50" : ""}`}
+                    onClick={() => isSelectionMode ? toggleSelectChat(chat.id, {} as any) : setSelectedChatId(chat.id)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-green-500" />
+                          {isSelectionMode ? (
+                            <div onClick={(e) => toggleSelectChat(chat.id, e)}>
+                              {selectedIds.includes(chat.id) ? (
+                                <CheckSquare className="w-5 h-5 text-green-600" />
+                              ) : (
+                                <Square className="w-5 h-5 text-gray-300" />
+                              )}
+                            </div>
+                          ) : (
+                            <Phone className="w-4 h-4 text-green-500" />
+                          )}
                           <span className="font-medium text-sm">
                             {chat.whatsapp_number}
                           </span>
@@ -143,14 +231,16 @@ export default function WhatsAppChatsPage() {
                           <Badge variant="secondary" className="text-xs">
                             {chat.messages?.length || 0} msgs
                           </Badge>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-gray-400 hover:text-red-500 hover:bg-red-50"
-                            onClick={(e) => deleteChat(chat.id, e)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {!isSelectionMode && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                              onClick={(e) => deleteChat(chat.id, e)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -199,8 +289,15 @@ export default function WhatsAppChatsPage() {
                                   </span>
                                 )}
                               </div>
-                              <div className="text-sm prose prose-sm max-w-none dark:prose-invert prose-p:leading-relaxed prose-a:text-blue-500 prose-a:underline">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              <div className="text-sm prose prose-sm max-w-none dark:prose-invert prose-p:leading-relaxed prose-a:text-blue-500 prose-a:underline prose-strong:font-bold prose-ul:list-disc prose-ul:ml-4">
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" className={msg.role === "user" ? "text-blue-600 underline" : "text-white underline font-medium"} />,
+                                    p: ({node, ...props}) => <p {...props} className="mb-1 last:mb-0" />,
+                                    li: ({node, ...props}) => <li {...props} className="mb-1" />
+                                  }}
+                                >
                                   {msg.content}
                                 </ReactMarkdown>
                               </div>
