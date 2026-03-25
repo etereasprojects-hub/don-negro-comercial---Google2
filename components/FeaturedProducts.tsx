@@ -137,6 +137,7 @@ export default function FeaturedProducts() {
                       <div className="mb-2 p-2 bg-slate-50 rounded-xl space-y-1 text-[10px] sm:text-xs font-black animate-in slide-in-from-top-2">
                         {prices.disponible6Meses && <div className="flex justify-between border-b border-slate-100 pb-1"><span>6 cuotas:</span><span className="text-[#6B4199]">{formatCurrency(prices.cuota6Meses)}</span></div>}
                         {prices.disponible12Meses && <div className="flex justify-between border-b border-slate-100 pb-1"><span>12 cuotas:</span><span className="text-[#6B4199]">{formatCurrency(prices.cuota12Meses)}</span></div>}
+                        {prices.disponible15Meses && <div className="flex justify-between border-b border-slate-100 pb-1"><span>15 cuotas:</span><span className="text-[#6B4199]">{formatCurrency(prices.cuota15Meses)}</span></div>}
                         {prices.disponible18Meses && <div className="flex justify-between"><span>18 cuotas:</span><span className="text-[#6B4199]">{formatCurrency(prices.cuota18Meses)}</span></div>}
                       </div>
                     )}

@@ -386,6 +386,12 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                                   <span className="text-[#6B4199]">{formatCurrency(prices.cuota12Meses)}</span>
                                 </div>
                               )}
+                              {prices.disponible15Meses && (
+                                <div className="flex justify-between items-center pb-1 border-b border-gray-200">
+                                  <span className="text-gray-500">15 cuotas:</span>
+                                  <span className="text-[#6B4199]">{formatCurrency(prices.cuota15Meses)}</span>
+                                </div>
+                              )}
                               {prices.disponible18Meses && (
                                 <div className="flex justify-between items-center">
                                   <span className="text-gray-500">18 cuotas:</span>
