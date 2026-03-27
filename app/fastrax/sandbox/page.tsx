@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
+import { generateSlug } from "@/lib/utils";
 import { 
   Database, Zap, Search, RefreshCw, Loader2, Package, Grid, Terminal,
   Activity, AlertCircle, ShoppingCart, Send, FileSearch, Receipt, Trash2, Code, Server, MapPin, Tag, Clock
@@ -177,7 +178,7 @@ export default function FastraxSandbox() {
             costo: Number(det.pre || 0),
             ubicacion: determineLocation(baseInfo?.slj),
             categoria: catName,
-            url_slug: nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_') + "_" + det.sku
+            url_slug: generateSlug(nombre) + "-" + det.sku
           };
         });
 

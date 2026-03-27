@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { generateSlug } from "@/lib/utils";
 import { calculatePrices, formatCurrency } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -202,7 +203,7 @@ export default function FastraxProductsTable({ onLogUpdate }: FastraxProductsTab
     
     for (const prod of batchToCommit) {
       try {
-        const slug = prod.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_') + "_" + prod.codigo_ext;
+        const slug = generateSlug(prod.nombre) + "-" + prod.codigo_ext;
         const finalProd = {
           ...prod,
           url_slug: slug,

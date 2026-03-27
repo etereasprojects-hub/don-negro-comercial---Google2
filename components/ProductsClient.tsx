@@ -58,7 +58,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
   const searchParams = useSearchParams();
   const [products] = useState<Product[]>(initialProducts);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [visibleCount, setVisibleCount] = useState(24);
+  
+  // Paginación vinculada a la URL para rastreabilidad SEO
+  const pageParam = searchParams.get('page');
+  const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
+  const visibleCount = currentPage * 24;
   
   // States para Filtros
   const [searchTerm, setSearchTerm] = useState("");
@@ -123,7 +127,6 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     }
 
     setFilteredProducts(filtered);
-    setVisibleCount(24);
   };
 
   const toggleCategory = (cat: string) => {
@@ -429,13 +432,13 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
 
           {visibleCount < filteredProducts.length && (
             <div className="mt-10 flex flex-col items-center gap-2">
-              <Button
-                onClick={() => setVisibleCount(prev => prev + 24)}
-                variant="outline"
-                className="h-12 px-8 rounded-xl font-black uppercase tracking-widest text-xs border-2 border-[#D91E7A] text-[#D91E7A] hover:bg-[#D91E7A] hover:text-white transition-all"
+              <Link
+                href={`?${new URLSearchParams({ ...Object.fromEntries(searchParams.entries()), page: (currentPage + 1).toString() }).toString()}`}
+                scroll={false}
+                className="flex items-center justify-center h-12 px-8 rounded-xl font-black uppercase tracking-widest text-xs border-2 border-[#D91E7A] text-[#D91E7A] hover:bg-[#D91E7A] hover:text-white transition-all"
               >
                 Ver más productos
-              </Button>
+              </Link>
               <p className="text-xs text-gray-400">
                 Mostrando {Math.min(visibleCount, filteredProducts.length)} de {filteredProducts.length}
               </p>

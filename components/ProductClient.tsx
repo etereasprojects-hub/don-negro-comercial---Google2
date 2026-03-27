@@ -39,9 +39,10 @@ interface Product {
 interface ProductClientProps {
   product: Product;
   banners: any[];
+  relatedProducts: any[];
 }
 
-export default function ProductClient({ product, banners }: ProductClientProps) {
+export default function ProductClient({ product, banners, relatedProducts }: ProductClientProps) {
   const { addItem } = useCart();
 
   const prices = calculatePrices({
@@ -228,7 +229,7 @@ export default function ProductClient({ product, banners }: ProductClientProps) 
       </div>
 
       <BannerSlider banners={banners} />
-      <RelatedProducts currentProductId={product.id} category={product.categoria} />
+      <RelatedProducts products={relatedProducts} />
     </main>
   );
 }

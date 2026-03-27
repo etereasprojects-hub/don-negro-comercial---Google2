@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -10,7 +10,6 @@ import ProductClient from "@/components/ProductClient";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Configuración de Supabase (usamos las mismas que en lib/supabase)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -43,7 +42,6 @@ interface Props {
 }
 
 async function getProduct(slug: string): Promise<Product | null> {
-  // Creamos el cliente de Supabase dentro de la función para asegurar que se ejecute en el servidor correctamente
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false }
   });
@@ -76,9 +74,24 @@ async function getBanners(section: string) {
   return data || [];
 }
 
+async function getRelatedProducts(category: string, currentProductId: string) {
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false }
+  });
+  const { data } = await supabase
+    .from("products")
+    .select("*")
+    .eq("estado", "Activo")
+    .neq("id", currentProductId)
+    .eq("categoria", category)
+    .limit(4);
+  return data || [];
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const slug = params.slug;
-  const product = await getProduct(slug);
+  // Limpiamos el slug por si entra una URL legacy con "_" para no fallar el query de metadatos
+  const cleanSlug = params.slug.replace(/_/g, '-');
+  const product = await getProduct(cleanSlug);
 
   if (!product) {
     return {
@@ -112,20 +125,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-  const slug = params.slug;
-  const [product, banners] = await Promise.all([
-    getProduct(slug),
-    getBanners('product_bottom')
-  ]);
+  const rawSlug = params.slug;
+
+  // Intercepción SEO: Redirección 301 automática de URLs viejas a las nuevas
+  if (rawSlug.includes('_')) {
+    permanentRedirect(`/${rawSlug.replace(/_/g, '-')}`);
+  }
+
+  const product = await getProduct(rawSlug);
 
   if (!product) {
     notFound();
   }
 
+  // Agregamos la consulta de relacionados basándonos en la categoría del producto actual
+  const [banners, relatedProducts] = await Promise.all([
+    getBanners('product_bottom'),
+    getRelatedProducts(product.categoria, product.id)
+  ]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <ProductClient product={product} banners={banners as any} />
+      <ProductClient product={product} banners={banners as any} relatedProducts={relatedProducts} />
       <Footer />
       <WhatsAppButton />
       <FloatingButtons />

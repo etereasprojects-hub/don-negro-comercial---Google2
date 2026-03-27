@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { calculatePrices, formatCurrency } from "@/lib/pricing";
+import { generateSlug } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -111,16 +112,6 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
   const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
-
-  const generateSlug = (text: string): string => {
-    return text
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "_");
-  };
 
   const decodeText = (t: string) => {
     if (!t) return "";
