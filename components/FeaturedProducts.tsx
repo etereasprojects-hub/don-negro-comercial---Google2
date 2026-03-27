@@ -152,6 +152,14 @@ export default function FeaturedProducts() {
             );
           })}
         </div>
+
+        <div className="mt-16 text-center">
+          <Link href="/productos">
+            <Button className="bg-[#D91E7A] hover:bg-[#6B4199] text-white font-black px-10 py-6 rounded-2xl shadow-xl shadow-[#D91E7A]/20 transition-all active:scale-95 uppercase tracking-widest text-sm">
+              Ver Catálogo Completo
+            </Button>
+          </Link>
+        </div>
       </div>
     </section>
   );

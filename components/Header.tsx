@@ -132,87 +132,89 @@ export default function Header() {
             )}
           </div>
 
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/"
-              className="text-gray-700 hover:text-[#D91E7A] transition-colors font-medium"
-            >
-              Inicio
-            </Link>
-            <Link
-              href="/productos"
-              className="text-gray-700 hover:text-[#D91E7A] transition-colors font-medium"
-            >
-              Catálogo
-            </Link>
-            <button
-              onClick={() => scrollToSection('nosotros')}
-              className="text-gray-700 hover:text-[#D91E7A] transition-colors font-medium"
-            >
-              Nosotros
-            </button>
-            <button
-              onClick={() => scrollToSection('contacto')}
-              className="text-gray-700 hover:text-[#D91E7A] transition-colors font-medium"
-            >
-              Contacto
-            </button>
+          <div className="hidden md:flex items-center gap-8 ml-auto">
+            <nav className="flex items-center gap-6">
+              <Link
+                href="/"
+                className="text-gray-700 hover:text-[#D91E7A] transition-colors font-medium"
+              >
+                Inicio
+              </Link>
+              <Link
+                href="/productos"
+                className="text-gray-700 hover:text-[#D91E7A] transition-colors font-medium"
+              >
+                Catálogo
+              </Link>
+              <button
+                onClick={() => scrollToSection('nosotros')}
+                className="text-gray-700 hover:text-[#D91E7A] transition-colors font-medium"
+              >
+                Nosotros
+              </button>
+              <button
+                onClick={() => scrollToSection('contacto')}
+                className="text-gray-700 hover:text-[#D91E7A] transition-colors font-medium"
+              >
+                Contacto
+              </button>
 
-            {(socialMedia.length > 0 || whatsappNumber || whatsapp247) && (
-              <div className="flex gap-2 ml-2 pl-2 border-l border-gray-300">
-                {socialMedia.map((social) => {
-                  const Icon = socialIcons[social.platform] || Facebook;
-                  const color = socialColors[social.platform] || '#6B4199';
-                  return (
-                    <a
-                      key={social.id}
-                      href={social.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:opacity-90 transition-all hover:scale-110 shadow-sm"
-                      style={{ backgroundColor: color }}
-                      title={social.platform}
-                    >
-                      <Icon size={16} />
-                    </a>
-                  );
-                })}
-                {whatsappNumber && (
-                  <button
-                    onClick={() => handleWhatsAppClick(whatsappNumber)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:opacity-90 transition-all hover:scale-110 shadow-sm"
-                    style={{ backgroundColor: '#25D366' }}
-                    title="WhatsApp"
-                  >
-                    <FaWhatsapp size={16} />
-                  </button>
-                )}
-                {whatsapp247 && (
-                  <div className="relative">
-                    <span className="absolute inset-[-2px] rounded-full animate-spin-slow">
-                      <span className="absolute inset-0 rounded-full bg-gradient-to-r from-yellow-400 via-pink-500 via-purple-500 to-yellow-400 opacity-60 blur-[2px]"></span>
-                    </span>
+              {(socialMedia.length > 0 || whatsappNumber || whatsapp247) && (
+                <div className="flex gap-2 ml-2 pl-2 border-l border-gray-300">
+                  {socialMedia.map((social) => {
+                    const Icon = socialIcons[social.platform] || Facebook;
+                    const color = socialColors[social.platform] || '#6B4199';
+                    return (
+                      <a
+                        key={social.id}
+                        href={social.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:opacity-90 transition-all hover:scale-110 shadow-sm"
+                        style={{ backgroundColor: color }}
+                        title={social.platform}
+                      >
+                        <Icon size={16} />
+                      </a>
+                    );
+                  })}
+                  {whatsappNumber && (
                     <button
-                      onClick={() => handleWhatsAppClick(whatsapp247)}
-                      className="relative w-8 h-8 rounded-full flex items-center justify-center text-white hover:opacity-90 transition-all hover:scale-110 shadow-sm animate-wiggle"
-                      style={{ backgroundColor: '#128C7E' }}
-                      title="WhatsApp 24/7"
+                      onClick={() => handleWhatsAppClick(whatsappNumber)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:opacity-90 transition-all hover:scale-110 shadow-sm"
+                      style={{ backgroundColor: '#25D366' }}
+                      title="WhatsApp"
                     >
                       <FaWhatsapp size={16} />
                     </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </nav>
+                  )}
+                  {whatsapp247 && (
+                    <div className="relative">
+                      <span className="absolute inset-[-2px] rounded-full animate-spin-slow">
+                        <span className="absolute inset-0 rounded-full bg-gradient-to-r from-yellow-400 via-pink-500 via-purple-500 to-yellow-400 opacity-60 blur-[2px]"></span>
+                      </span>
+                      <button
+                        onClick={() => handleWhatsAppClick(whatsapp247)}
+                        className="relative w-8 h-8 rounded-full flex items-center justify-center text-white hover:opacity-90 transition-all hover:scale-110 shadow-sm animate-wiggle"
+                        style={{ backgroundColor: '#128C7E' }}
+                        title="WhatsApp 24/7"
+                      >
+                        <FaWhatsapp size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </nav>
 
-          <Link
-            href="/login"
-            className="hidden md:flex items-center gap-2 bg-[#D91E7A] hover:bg-[#6B4199] text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
-          >
-            <LogIn className="w-4 h-4" />
-            Acceso
-          </Link>
+            <Link
+              href="/login"
+              className="flex items-center gap-2 bg-[#D91E7A] hover:bg-[#6B4199] text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
+            >
+              <LogIn className="w-4 h-4" />
+              Acceso
+            </Link>
+          </div>
 
           <button
             className="md:hidden"

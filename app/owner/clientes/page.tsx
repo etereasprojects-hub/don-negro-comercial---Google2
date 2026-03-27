@@ -14,13 +14,22 @@ import {
   PowerOff,
   Search,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import AdminHeader from "@/components/admin/AdminHeader";
 import AdminTabs from "@/components/admin/AdminTabs";
 
@@ -46,6 +55,15 @@ export default function ClientesPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Edit State
+  const [editingClient, setEditingClient] = useState<ClientProfile | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    full_name: "",
+    password: ""
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editMessage, setEditMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
     fetchClients();
@@ -129,6 +147,47 @@ export default function ClientesPage() {
       alert("Error al actualizar estado");
     } else {
       fetchClients();
+    }
+  };
+
+  const handleEditClick = (client: ClientProfile) => {
+    setEditingClient(client);
+    setEditFormData({
+      full_name: client.full_name || "",
+      password: ""
+    });
+    setEditMessage(null);
+  };
+
+  const handleUpdateClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClient) return;
+    
+    setIsUpdating(true);
+    setEditMessage(null);
+
+    try {
+      const response = await fetch("/api/owner/update-client", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingClient.id,
+          full_name: editFormData.full_name,
+          password: editFormData.password || undefined
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) throw new Error(result.error || "Error al actualizar cliente");
+
+      setEditMessage({ type: 'success', text: "Cliente actualizado con éxito." });
+      fetchClients();
+      setTimeout(() => setEditingClient(null), 1500);
+    } catch (error: any) {
+      setEditMessage({ type: 'error', text: error.message });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -301,22 +360,32 @@ export default function ClientesPage() {
                         </Badge>
                       </td>
                       <td className="p-6 text-right">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => toggleClientStatus(client.id, client.active)}
-                          className={`rounded-xl font-black uppercase text-[10px] tracking-widest h-9 px-4 gap-2 transition-all ${
-                            client.active 
-                              ? "border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200" 
-                              : "border-emerald-100 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200"
-                          }`}
-                        >
-                          {client.active ? (
-                            <><PowerOff className="w-3 h-3" /> Desactivar</>
-                          ) : (
-                            <><Power className="w-3 h-3" /> Activar</>
-                          )}
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditClick(client)}
+                            className="rounded-xl font-black uppercase text-[10px] tracking-widest h-9 px-4 gap-2 border-slate-200 text-slate-600 hover:bg-slate-50"
+                          >
+                            <Pencil className="w-3 h-3" /> Editar
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => toggleClientStatus(client.id, client.active)}
+                            className={`rounded-xl font-black uppercase text-[10px] tracking-widest h-9 px-4 gap-2 transition-all ${
+                              client.active 
+                                ? "border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200" 
+                                : "border-emerald-100 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200"
+                            }`}
+                          >
+                            {client.active ? (
+                              <><PowerOff className="w-3 h-3" /> Desactivar</>
+                            ) : (
+                              <><Power className="w-3 h-3" /> Activar</>
+                            )}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -326,6 +395,68 @@ export default function ClientesPage() {
           </div>
         </Card>
       </div>
+
+      {/* Modal de Edición */}
+      <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
+        <DialogContent className="sm:max-w-[425px] rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight text-[#2E3A52]">Editar Cliente</DialogTitle>
+            <DialogDescription className="font-medium text-slate-500">
+              Modifica los datos del cliente mayorista. Deja la contraseña en blanco para no cambiarla.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateClient} className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit_full_name" className="text-xs font-black uppercase text-slate-500 tracking-widest">Nombre Completo</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Input 
+                  id="edit_full_name"
+                  required 
+                  value={editFormData.full_name}
+                  onChange={e => setEditFormData({...editFormData, full_name: e.target.value})}
+                  className="pl-10 h-12 border-gray-200 focus:border-[#D91E7A] focus:ring-[#D91E7A] rounded-xl font-bold"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit_password" className="text-xs font-black uppercase text-slate-500 tracking-widest">Nueva Contraseña (Opcional)</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Input 
+                  id="edit_password"
+                  type="password" 
+                  value={editFormData.password}
+                  onChange={e => setEditFormData({...editFormData, password: e.target.value})}
+                  placeholder="Dejar en blanco para mantener"
+                  className="pl-10 h-12 border-gray-200 focus:border-[#D91E7A] focus:ring-[#D91E7A] rounded-xl font-bold"
+                />
+              </div>
+            </div>
+
+            {editMessage && (
+              <div className={`flex items-center gap-2 p-3 rounded-xl border ${
+                editMessage.type === 'success' 
+                  ? 'bg-emerald-50 border-emerald-100 text-emerald-600' 
+                  : 'bg-red-50 border-red-100 text-red-600'
+              } text-sm font-bold`}>
+                {editMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                {editMessage.text}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button 
+                type="submit" 
+                disabled={isUpdating}
+                className="w-full bg-[#D91E7A] hover:bg-[#6B4199] text-white font-black h-12 rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-xs"
+              >
+                {isUpdating ? <Loader2 className="w-5 h-5 animate-spin" /> : "Guardar Cambios"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
