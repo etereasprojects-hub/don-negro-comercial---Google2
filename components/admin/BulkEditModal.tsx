@@ -48,6 +48,7 @@ export default function BulkEditModal({
     interes_12_meses_porcentaje: "" as string | number,
     interes_15_meses_porcentaje: "" as string | number,
     interes_18_meses_porcentaje: "" as string | number,
+    factor_mayorista: "" as string | number,
     stock: "" as string | number,
     estado: "",
     destacado: false,
@@ -82,6 +83,7 @@ export default function BulkEditModal({
       interes_12_meses_porcentaje: "",
       interes_15_meses_porcentaje: "",
       interes_18_meses_porcentaje: "",
+      factor_mayorista: "",
       stock: "",
       estado: "",
       destacado: false,
@@ -114,6 +116,10 @@ export default function BulkEditModal({
       }
       if (formData.interes_18_meses_porcentaje !== "") {
         dataToUpdate.interes_18_meses_porcentaje = Number(formData.interes_18_meses_porcentaje);
+      }
+      if (formData.factor_mayorista !== "") {
+        dataToUpdate.factor_mayorista = Number(formData.factor_mayorista);
+        dataToUpdate.precio_mayorista = 0; // Al editar el factor, eliminamos el precio manual
       }
       if (formData.stock !== "") {
         dataToUpdate.stock = Number(formData.stock);
@@ -159,7 +165,7 @@ export default function BulkEditModal({
           <DialogTitle>Editar Productos en Grupo</DialogTitle>
           <DialogDescription>
             Editando {selectedProductIds.size} producto{selectedProductIds.size > 1 ? "s" : ""}.
-            Los campos que dejes vacíos no se actualizarán. Para desactivar una opción de crédito, escribe "0".
+            Los campos que dejes vacíos no se actualizarán. Para desactivar una opción de crédito, escribe &quot;0&quot;.
           </DialogDescription>
         </DialogHeader>
 
@@ -201,7 +207,7 @@ export default function BulkEditModal({
 
             <div className="border-t pt-4">
               <h3 className="font-semibold text-lg mb-3 text-gray-800">Intereses a Crédito (%)</h3>
-              <p className="text-xs text-blue-600 mb-4 font-medium">Nota: El valor "0" inhabilita la opción de cuotas para el cliente.</p>
+              <p className="text-xs text-blue-600 mb-4 font-medium">Nota: El valor &quot;0&quot; inhabilita la opción de cuotas para el cliente.</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="interes_6_meses_porcentaje">6 Meses (%)</Label>
@@ -254,6 +260,24 @@ export default function BulkEditModal({
             </div>
 
             <div className="border-t pt-4">
+              <h3 className="font-semibold text-lg mb-3 text-gray-800 text-emerald-700">Precio Mayorista</h3>
+              <p className="text-xs text-emerald-600 mb-4 font-medium">
+                Nota: Al establecer un factor, se eliminará cualquier precio mayorista manual previo.
+              </p>
+              <div>
+                <Label htmlFor="factor_mayorista">Factor Mayorista (ej: 0.85 para 15% desc)</Label>
+                <Input
+                  id="factor_mayorista"
+                  type="number"
+                  step="0.01"
+                  value={formData.factor_mayorista}
+                  onChange={(e) => setFormData({ ...formData, factor_mayorista: e.target.value })}
+                  placeholder="Ejemplo: 0.85"
+                />
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
               <h3 className="font-semibold text-lg mb-3 text-gray-800">Inventario</h3>
               <div>
                 <Label htmlFor="stock">Stock</Label>
@@ -291,7 +315,7 @@ export default function BulkEditModal({
                   onCheckedChange={(checked) => setFormData({ ...formData, updateDestacado: checked })}
                 />
                 <Label htmlFor="updateDestacado" className="font-bold text-blue-700">
-                  ¿Actualizar estado de "Destacado"?
+                  ¿Actualizar estado de &quot;Destacado&quot;?
                 </Label>
               </div>
               
