@@ -112,7 +112,7 @@ export default function FeaturedProducts() {
                   )}
 
                   <CardContent className="p-2 sm:p-4">
-                    <Link href={`/${product.url_slug}`}>
+                    <Link href={`/${product.url_slug.replace(/_/g, '-')}`}>
                       <div className="aspect-square bg-gray-100 rounded-2xl mb-2 sm:mb-4 overflow-hidden relative p-1 sm:p-2">
                         {product.imagen_url ? (
                           <Image src={product.imagen_url} alt={product.nombre} fill sizes="25vw" className="object-contain group-hover:scale-110 transition-transform duration-300" />

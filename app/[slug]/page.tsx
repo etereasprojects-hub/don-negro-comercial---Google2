@@ -103,7 +103,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${product.nombre} | Don Negro Comercial`,
     description: product.descripcion?.replace(/<[^>]*>/g, '').substring(0, 160) || `Comprá ${product.nombre} al mejor precio en Don Negro Comercial, Asunción Paraguay.`,
     alternates: {
-      canonical: `https://www.donegro.com/${product.url_slug}`,
+      canonical: `https://www.donegro.com/${product.url_slug.replace(/_/g, '-')}`,
     },
     openGraph: {
       type: 'website',

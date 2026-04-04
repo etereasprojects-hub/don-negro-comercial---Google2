@@ -52,17 +52,18 @@ interface Product {
 
 interface ProductsClientProps {
   initialProducts: Product[];
+  initialPage?: number;
 }
 
-export default function ProductsClient({ initialProducts }: ProductsClientProps) {
+export default function ProductsClient({ initialProducts, initialPage }: ProductsClientProps) {
   const searchParams = useSearchParams();
   const [products] = useState<Product[]>(initialProducts);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   
   // Paginación vinculada a la URL para rastreabilidad SEO
   const pageParam = searchParams.get('page');
-  const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
-  const visibleCount = currentPage * 24;
+  const currentPage = pageParam ? parseInt(pageParam, 10) : (initialPage || 1);
+  const [visibleCount, setVisibleCount] = useState(currentPage * 24);
   
   // States para Filtros
   const [searchTerm, setSearchTerm] = useState("");
@@ -82,6 +83,10 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     const cats = Array.from(new Set(initialProducts.map((p) => p.categoria).filter(Boolean)));
     setCategories(cats as string[]);
   }, [searchParams, initialProducts]);
+
+  useEffect(() => {
+    setVisibleCount(currentPage * 24);
+  }, [currentPage]);
 
   useEffect(() => {
     filterProducts();
@@ -340,7 +345,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                     )}
 
                     <CardContent className="p-3 sm:p-5 flex flex-col h-full">
-                      <Link href={`/${product.url_slug}`} className="block group/img">
+                      <Link href={`/${product.url_slug.replace(/_/g, '-')}`} className="block group/img">
                         <div className="aspect-square bg-gray-100 rounded-2xl mb-4 overflow-hidden relative p-4">
                           {product.imagen_url ? (
                             <Image 

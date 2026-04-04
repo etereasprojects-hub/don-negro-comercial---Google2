@@ -49,7 +49,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
             return (
               <Link 
                 key={product.id} 
-                href={`/${product.url_slug}`}
+                href={`/${product.url_slug.replace(/_/g, '-')}`}
                 className="snap-start shrink-0 w-[280px]"
               >
                 <Card className="h-full border-2 border-transparent hover:border-[#D91E7A] transition-all duration-300 hover:shadow-xl rounded-[2rem] overflow-hidden group">

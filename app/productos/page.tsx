@@ -64,7 +64,13 @@ async function getBanners(section: string) {
   return data || [];
 }
 
-export default async function ProductsPage() {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined }
+}) {
+  const currentPage = Number(searchParams?.page) || 1;
+
   const [products, bannersTop, bannersBottom] = await Promise.all([
     getProducts(),
     getBanners('catalog_top'),
@@ -76,7 +82,7 @@ export default async function ProductsPage() {
       <Header />
       <main className="min-h-screen bg-[#FDFDFD] pt-24 pb-20">
         <BannerSlider banners={bannersTop as any} />
-        <ProductsClient initialProducts={products as any} />
+        <ProductsClient initialProducts={products as any} initialPage={currentPage} />
         <BannerSlider banners={bannersBottom as any} />
       </main>
       <Footer />
