@@ -45,6 +45,7 @@ interface Product {
   interes_18_meses_porcentaje: number | string;
   precio_mayorista?: number;
   factor_mayorista?: number | null;
+  es_mayorista?: boolean;
   stock: number;
   ubicacion: string;
   fastrax_id_sucursal?: string;
@@ -90,7 +91,8 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
     interes_15_meses_porcentaje: 85,
     interes_18_meses_porcentaje: 0,
     precio_mayorista: 0,
-    factor_mayorista: null as number | null,
+    factor_mayorista: 1,
+    es_mayorista: false,
     min_cantidad_mayorista: 1,
     stock: 0,
     ubicacion: "En Local",
@@ -232,7 +234,8 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
       interes_15_meses_porcentaje: data.interes_15_meses_porcentaje != null ? Number(data.interes_15_meses_porcentaje) : 85,
       interes_18_meses_porcentaje: data.interes_18_meses_porcentaje != null ? Number(data.interes_18_meses_porcentaje) : 0,
       precio_mayorista: data.precio_mayorista != null ? Number(data.precio_mayorista) : 0,
-      factor_mayorista: data.factor_mayorista != null ? Number(data.factor_mayorista) : null,
+      factor_mayorista: data.factor_mayorista != null ? Number(data.factor_mayorista) : 1,
+      es_mayorista: Boolean(data.es_mayorista),
       min_cantidad_mayorista: data.min_cantidad_mayorista ?? 1,
       stock: data.stock != null ? Number(data.stock) : 0,
       ubicacion: data.ubicacion || "En Local",
@@ -263,7 +266,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
           id: "", sku: "", nombre: "", descripcion: "", codigo_wos: "", codigo_pro: "", codigo_ext: "",
           categoria: "", url_slug: "", costo: 0, margen_porcentaje: 20, interes_6_meses_porcentaje: 50,
           interes_12_meses_porcentaje: 75, interes_15_meses_porcentaje: 85, interes_18_meses_porcentaje: 0,
-          precio_mayorista: 0, factor_mayorista: null, min_cantidad_mayorista: 1,
+          precio_mayorista: 0, factor_mayorista: 1, es_mayorista: false, min_cantidad_mayorista: 1,
           stock: 0, ubicacion: "En Local", fastrax_id_sucursal: "", estado: "Activo",
           imagen_url: "", imagenes_extra: ["", "", "", "", ""], video_url: "", destacado: false,
           show_in_hero: false, source: ""
@@ -325,6 +328,7 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
           interes_18_meses_porcentaje: Number(formData.interes_18_meses_porcentaje),
           precio_mayorista: Number(formData.precio_mayorista),
           factor_mayorista: formData.factor_mayorista,
+          es_mayorista: formData.es_mayorista,
           min_cantidad_mayorista: Number(formData.min_cantidad_mayorista),
           stock: Number(formData.stock),
           imagenes_extra: formData.imagenes_extra.filter(i => i.trim() !== ""),
@@ -610,15 +614,25 @@ export default function ProductModal({ isOpen, onClose, product, onSave }: Produ
                   {/* Precio Mayorista */}
                   <div className="bg-green-50 p-6 rounded-3xl border border-green-200 space-y-6">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-black text-xs uppercase text-emerald-700 tracking-widest flex items-center gap-2">
-                        <Tag className="w-4 h-4 text-emerald-600" /> Precio Mayorista
-                      </h3>
+                      <div className="flex items-center gap-4">
+                        <h3 className="font-black text-xs uppercase text-emerald-700 tracking-widest flex items-center gap-2">
+                          <Tag className="w-4 h-4 text-emerald-600" /> Precio Mayorista
+                        </h3>
+                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-emerald-100 shadow-sm">
+                          <Label htmlFor="es_mayorista" className="text-[10px] font-black uppercase text-emerald-700 cursor-pointer">Mayorista ON/OFF</Label>
+                          <Switch 
+                            id="es_mayorista" 
+                            checked={formData.es_mayorista} 
+                            onCheckedChange={(checked) => setFormData({ ...formData, es_mayorista: checked })} 
+                          />
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2">
                         <Label htmlFor="use-factor" className="text-[10px] font-bold uppercase text-emerald-700">Usar factor de cálculo</Label>
                         <Switch 
                           id="use-factor" 
                           checked={formData.factor_mayorista !== null} 
-                          onCheckedChange={(checked) => setFormData({ ...formData, factor_mayorista: checked ? 0.85 : null })} 
+                          onCheckedChange={(checked) => setFormData({ ...formData, factor_mayorista: checked ? 1 : null })} 
                         />
                       </div>
                     </div>

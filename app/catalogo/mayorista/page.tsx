@@ -36,6 +36,7 @@ async function getWholesaleProducts() {
   const { data } = await supabase
     .from('products')
     .select('id, nombre, url_slug, costo, margen_porcentaje, imagen_url, descripcion, categoria, stock, ubicacion, source, estado, active, precio_mayorista, factor_mayorista, min_cantidad_mayorista')
+    .eq('es_mayorista', true)
     .or('estado.eq.Activo,active.eq.true')
     .order('nombre');
 

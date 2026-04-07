@@ -39,6 +39,7 @@ interface Product {
   imagen_url: string;
   destacado: boolean;
   show_in_hero: boolean;
+  es_mayorista?: boolean;
 }
 
 export default function ProductsTable() {
@@ -241,6 +242,7 @@ export default function ProductsTable() {
                 <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase">Producto</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase">Código / EXT</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase">Categoría</th>
+                <th className="px-4 py-3 text-center text-[10px] font-black text-gray-500 uppercase">Mayorista</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase">Precio</th>
                 <th className="px-4 py-3 text-center text-[10px] font-black text-gray-500 uppercase w-24">Stock</th>
                 <th className="px-4 py-3 text-right text-[10px] font-black text-gray-500 uppercase">Acciones</th>
@@ -263,6 +265,13 @@ export default function ProductsTable() {
                   </td>
                   <td className="px-4 py-4 font-mono text-[10px] font-bold text-slate-500">{product.codigo_ext || "-"}</td>
                   <td className="px-4 py-4 text-xs font-bold text-slate-600">{product.categoria || "-"}</td>
+                  <td className="px-4 py-4 text-center">
+                    {product.es_mayorista ? (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px] font-black uppercase">SÍ</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-slate-300 border-slate-200 text-[9px] font-black uppercase">NO</Badge>
+                    )}
+                  </td>
                   <td className="px-4 py-4 text-sm font-black text-gray-900">
                     {formatCurrency(calculatePrices({
                       costo: Number(product.costo ?? 0),

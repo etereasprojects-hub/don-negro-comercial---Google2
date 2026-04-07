@@ -53,6 +53,8 @@ export default function BulkEditModal({
     estado: "",
     destacado: false,
     updateDestacado: false, // Nueva bandera para saber si queremos actualizar el checkbox
+    es_mayorista: false,
+    updateEsMayorista: false,
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -88,6 +90,8 @@ export default function BulkEditModal({
       estado: "",
       destacado: false,
       updateDestacado: false,
+      es_mayorista: false,
+      updateEsMayorista: false,
     });
   };
 
@@ -127,6 +131,10 @@ export default function BulkEditModal({
       
       if (formData.updateDestacado) {
         dataToUpdate.destacado = formData.destacado;
+      }
+
+      if (formData.updateEsMayorista) {
+        dataToUpdate.es_mayorista = formData.es_mayorista;
       }
 
       if (Object.keys(dataToUpdate).length === 0) {
@@ -328,6 +336,30 @@ export default function BulkEditModal({
                   />
                   <Label htmlFor="destacado" className="cursor-pointer">
                     Marcar como Producto Destacado
+                  </Label>
+                </div>
+              )}
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="updateEsMayorista"
+                  checked={formData.updateEsMayorista}
+                  onCheckedChange={(checked) => setFormData({ ...formData, updateEsMayorista: checked })}
+                />
+                <Label htmlFor="updateEsMayorista" className="font-bold text-emerald-700">
+                  ¿Actualizar estado de &quot;Mayorista&quot;?
+                </Label>
+              </div>
+              
+              {formData.updateEsMayorista && (
+                <div className="flex items-center space-x-2 pl-6 animate-in fade-in slide-in-from-left-2">
+                  <Switch
+                    id="es_mayorista"
+                    checked={formData.es_mayorista}
+                    onCheckedChange={(checked) => setFormData({ ...formData, es_mayorista: checked })}
+                  />
+                  <Label htmlFor="es_mayorista" className="cursor-pointer">
+                    Habilitar para Catálogo Mayorista
                   </Label>
                 </div>
               )}
