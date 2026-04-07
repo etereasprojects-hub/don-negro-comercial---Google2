@@ -87,7 +87,8 @@ export default function ImageGeneratorPage() {
   };
 
   const handleDownload = async () => {
-    if (!frameRef.current) return;
+    if (!frameRef.current || !selectedProduct) return;
+    const productToDownload = { ...selectedProduct };
     setGenerating(true);
     try {
       // Esperamos un poco para asegurar que las imágenes estén cargadas
@@ -101,7 +102,7 @@ export default function ImageGeneratorPage() {
       });
       
       const link = document.createElement('a');
-      link.download = `producto-${selectedProduct?.nombre.toLowerCase().replace(/\s+/g, '-')}.png`;
+      link.download = `producto-${productToDownload.nombre.toLowerCase().replace(/\s+/g, '-')}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -143,9 +144,10 @@ export default function ImageGeneratorPage() {
                   placeholder="Buscar producto por nombre..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  disabled={generating}
                 />
                 
-                <div className="max-h-[600px] overflow-y-auto border rounded-lg divide-y">
+                <div className={`max-h-[600px] overflow-y-auto border rounded-lg divide-y ${generating ? 'opacity-50 pointer-events-none' : ''}`}>
                   {loading ? (
                     <div className="p-8 text-center text-gray-500">Cargando productos...</div>
                   ) : filteredProducts.length === 0 ? (
