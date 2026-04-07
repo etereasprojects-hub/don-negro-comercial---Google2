@@ -44,6 +44,7 @@ async function getProducts() {
     .from('products')
     .select('id, nombre, url_slug, costo, margen_porcentaje, interes_6_meses_porcentaje, interes_12_meses_porcentaje, interes_15_meses_porcentaje, interes_18_meses_porcentaje, imagen_url, descripcion, categoria, stock, ubicacion, source, estado, active')
     .or('estado.eq.Activo,active.eq.true')
+    .gt('stock', 0)
     .order('nombre');
 
   return data || [];

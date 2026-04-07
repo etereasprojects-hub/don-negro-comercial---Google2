@@ -82,6 +82,7 @@ async function getRelatedProducts(category: string, currentProductId: string) {
     .from("products")
     .select("*")
     .eq("estado", "Activo")
+    .gt("stock", 0)
     .neq("id", currentProductId)
     .eq("categoria", category)
     .limit(4);

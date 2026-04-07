@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Upload, Plus, Search, Filter, Edit, Trash2, Package, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import ProductModal from "./ProductModal";
 import BulkEditModal from "./BulkEditModal";
 import CSVImportModal from "./CSVImportModal";

@@ -37,6 +37,7 @@ async function getWholesaleProducts() {
     .from('products')
     .select('id, nombre, url_slug, costo, margen_porcentaje, imagen_url, descripcion, categoria, stock, ubicacion, source, estado, active, precio_mayorista, factor_mayorista, min_cantidad_mayorista')
     .eq('es_mayorista', true)
+    .gt('stock', 0)
     .or('estado.eq.Activo,active.eq.true')
     .order('nombre');
 

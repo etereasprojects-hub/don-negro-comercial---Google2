@@ -42,6 +42,7 @@ export default function FeaturedProducts() {
       .select("id, nombre, url_slug, costo, margen_porcentaje, interes_6_meses_porcentaje, interes_12_meses_porcentaje, interes_15_meses_porcentaje, interes_18_meses_porcentaje, imagen_url, descripcion, source, ubicacion")
       .eq("destacado", true)
       .eq("estado", "Activo")
+      .gt("stock", 0)
       .limit(12);
 
     if (error) {
