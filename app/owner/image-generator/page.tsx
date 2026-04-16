@@ -43,6 +43,7 @@ export default function ImageGeneratorPage() {
   const [generating, setGenerating] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [captureKey, setCaptureKey] = useState(0);
+  const [urlTimestamp, setUrlTimestamp] = useState(Date.now());
   const frameRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function ImageGeneratorPage() {
     if (selectedProduct) {
       setImageLoaded(false);
       setCaptureKey(prev => prev + 1);
+      setUrlTimestamp(Date.now());
     }
   }, [selectedProduct]);
 
@@ -93,22 +95,29 @@ export default function ImageGeneratorPage() {
   const getProxiedUrl = (url: string | null) => {
     if (!url) return "";
     if (url.startsWith("data:")) return url;
-    return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+    return `/api/proxy-image?url=${encodeURIComponent(url)}&t=${urlTimestamp}`;
   };
 
   const handleDownload = async () => {
     if (!frameRef.current || !selectedProduct || !imageLoaded) return;
+    
+    // Capturamos el producto actual para el nombre del archivo
     const productToDownload = { ...selectedProduct };
     setGenerating(true);
+    
     try {
-      // Un pequeño retraso para asegurar el pintado final
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Un retraso un poco mayor para asegurar que el navegador haya terminado de pintar
+      // y que html-to-image no use versiones intermedias
+      await new Promise(resolve => setTimeout(resolve, 800));
       
+      // Intentamos generar la imagen
       const dataUrl = await toPng(frameRef.current, {
         cacheBust: true,
         pixelRatio: 3, 
         backgroundColor: '#ffffff',
         skipFonts: true,
+        // Forzamos a que no use caché interna si la tiene
+        includeGraphics: true,
       });
       
       const link = document.createElement('a');
