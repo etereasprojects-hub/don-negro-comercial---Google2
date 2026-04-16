@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { calculatePrices, formatCurrency } from "@/lib/pricing";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, Star, ListChecks, Phone, MapPin, Globe } from "lucide-react";
-import Image from "next/image";
+import { Phone, MapPin, Globe, ListChecks } from "lucide-react";
 
 interface Product {
   id: string;
@@ -70,8 +69,8 @@ export default function CapturePage() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen">Cargando vista de captura...</div>;
-  if (!product) return <div className="flex items-center justify-center min-h-screen">Producto no encontrado</div>;
+  if (loading) return <div className="flex items-center justify-center min-h-screen text-slate-400 font-bold uppercase tracking-widest">Cargando vista de captura...</div>;
+  if (!product) return <div className="flex items-center justify-center min-h-screen text-slate-400 font-bold uppercase tracking-widest">Producto no encontrado</div>;
 
   const prices = calculatePrices({
     costo: Number(product.costo ?? 0),
@@ -82,9 +81,10 @@ export default function CapturePage() {
     interes_18_meses_porcentaje: Number(product.interes_18_meses_porcentaje ?? 85),
   });
 
+  const description = product.descripcion?.replace(/<[^>]*>?/gm, " ").replace(/\s+/g, " ").trim();
+
   return (
-  return (
-    <div className="bg-white h-screen p-4 max-w-[1400px] mx-auto overflow-hidden flex flex-col">
+    <div className="bg-white h-screen p-4 max-w-[1400px] mx-auto overflow-hidden flex flex-col font-sans">
       {/* Header compacto */}
       <div className="flex items-center justify-between mb-4 border-b pb-2 flex-shrink-0">
         <div className="flex items-center gap-4">
@@ -104,12 +104,11 @@ export default function CapturePage() {
         </div>
       </div>
 
-      {/* Área de Contenido Principal que se ajusta a la altura disponible */}
+      {/* Área de Contenido Principal */}
       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 min-h-0 items-center">
         
         {/* Lado Izquierdo: Imagen y Contacto */}
         <div className="flex flex-col h-full space-y-4 min-h-0">
-          {/* Contenedor de Imagen que crece/se encoge */}
           <div className="flex-1 relative rounded-2xl overflow-hidden bg-slate-50 border-2 border-slate-100 flex items-center justify-center min-h-0">
             {product.imagen_url ? (
               <img 
@@ -118,11 +117,10 @@ export default function CapturePage() {
                 className="max-w-full max-h-full object-contain p-2"
               />
             ) : (
-              <div className="text-slate-300">Sin Imagen</div>
+              <div className="text-slate-200 uppercase font-black tracking-widest text-xs tracking-tighter">Sin Imagen</div>
             )}
           </div>
 
-          {/* Información de Contacto (Altura fija o mínima) */}
           <Card className="border-none bg-slate-50 rounded-2xl shadow-sm flex-shrink-0">
             <CardContent className="p-4">
               <h3 className="font-black uppercase text-[10px] tracking-widest text-[#2E3A52] mb-3 flex items-center gap-2 border-b pb-1 border-slate-200">
@@ -143,7 +141,7 @@ export default function CapturePage() {
                   </div>
                 )}
                 {locations.slice(0, 2).map(loc => (
-                  <div key={loc.id} className="flex flex-col border-t border-slate-100 pt-2">
+                  <div key={loc.id} className="flex flex-col border-t border-slate-100 pt-2 text-left">
                     <div className="flex items-center gap-1 text-[8px] font-black uppercase text-[#D91E7A] mb-0.5">
                       <MapPin className="w-2 h-2" />
                       {loc.name}
@@ -157,7 +155,7 @@ export default function CapturePage() {
         </div>
 
         {/* Lado Derecho: Producto y Precios */}
-        <div className="h-full flex flex-col justify-center space-y-6 py-4 min-h-0">
+        <div className="h-full flex flex-col justify-center space-y-6 py-4 min-h-0 text-left">
           <div className="space-y-3">
             <h1 className="text-3xl lg:text-5xl font-black text-[#2E3A52] tracking-tighter uppercase leading-[0.9] lg:leading-[0.85]">
               {product.nombre}
@@ -179,11 +177,11 @@ export default function CapturePage() {
               <ListChecks className="w-4 h-4 text-slate-300" /> Especificaciones Principales
             </div>
             <p className="text-slate-600 text-base lg:text-lg leading-snug whitespace-pre-wrap font-medium line-clamp-5 xl:line-clamp-none">
-              {product.descripcion?.replace(/<[^>]*>?/gm, " ").replace(/\s+/g, " ").trim()}
+              {description}
             </p>
           </div>
 
-          {/* Bloque de Precios (Altura ajustable) */}
+          {/* Bloque de Precios */}
           <div className="space-y-4">
             <div className="bg-gradient-to-br from-[#D91E7A] to-[#6B4199] text-white py-5 px-8 rounded-3xl text-center shadow-2xl shadow-purple-200/50">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-80">Precio Especial Contado</p>
@@ -193,19 +191,30 @@ export default function CapturePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: '6 Meses', val: prices.cuota6Meses, show: prices.disponible6Meses },
-                { label: '12 Meses', val: prices.cuota12Meses, show: prices.disponible12Meses },
-                { label: '15 Meses', val: prices.cuota15Meses, show: prices.disponible15Meses },
-                { label: '18 Meses', val: prices.cuota18Meses, show: prices.disponible18Meses },
-              ].filter(p => p.show).map((p, idx) => (
-                <div key={idx} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center justify-center group hover:bg-white transition-colors">
-                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">{p.label}</span>
-                  <p className="text-xl lg:text-2xl font-black text-[#2E3A52] tracking-tighter leading-none">
-                    {formatCurrency(p.val)}
-                  </p>
+              {prices.disponible6Meses && (
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center justify-center">
+                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">6 Meses</span>
+                  <p className="text-xl lg:text-2xl font-black text-[#2E3A52] tracking-tighter leading-none">{formatCurrency(prices.cuota6Meses)}</p>
                 </div>
-              ))}
+              )}
+              {prices.disponible12Meses && (
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center justify-center">
+                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">12 Meses</span>
+                  <p className="text-xl lg:text-2xl font-black text-[#2E3A52] tracking-tighter leading-none">{formatCurrency(prices.cuota12Meses)}</p>
+                </div>
+              )}
+              {prices.disponible15Meses && (
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col items-center justify-center">
+                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">15 Meses</span>
+                  <p className="text-xl lg:text-2xl font-black text-[#2E3A52] tracking-tighter leading-none">{formatCurrency(prices.cuota15Meses)}</p>
+                </div>
+              )}
+              {prices.disponible18Meses && (
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col items-center justify-center">
+                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">18 Meses</span>
+                  <p className="text-xl lg:text-2xl font-black text-[#2E3A52] tracking-tighter leading-none">{formatCurrency(prices.cuota18Meses)}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -214,7 +223,6 @@ export default function CapturePage() {
           </p>
         </div>
       </div>
-    </div>
     </div>
   );
 }

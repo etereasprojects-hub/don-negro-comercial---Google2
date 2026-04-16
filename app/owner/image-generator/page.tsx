@@ -41,7 +41,7 @@ export default function ImageGeneratorPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [loadedProductId, setLoadedProductId] = useState<string | null>(null);
   const [captureKey, setCaptureKey] = useState(0);
   const [urlTimestamp, setUrlTimestamp] = useState(Date.now());
   const frameRef = useRef<HTMLDivElement>(null);
@@ -53,11 +53,11 @@ export default function ImageGeneratorPage() {
   // Reset image loaded status when selecting a product
   useEffect(() => {
     if (selectedProduct) {
-      setImageLoaded(false);
+      setLoadedProductId(null);
       setCaptureKey(prev => prev + 1);
       setUrlTimestamp(Date.now());
     }
-  }, [selectedProduct]);
+  }, [selectedProduct?.id]);
 
   const loadData = async () => {
     setLoading(true);
@@ -99,25 +99,26 @@ export default function ImageGeneratorPage() {
   };
 
   const handleDownload = async () => {
-    if (!frameRef.current || !selectedProduct || !imageLoaded) return;
+    if (!frameRef.current || !selectedProduct) return;
+    if (loadedProductId !== selectedProduct.id) return; // guardia extra
     
     // Capturamos el producto actual para el nombre del archivo
     const productToDownload = { ...selectedProduct };
     setGenerating(true);
     
     try {
-      // Un retraso un poco mayor para asegurar que el navegador haya terminado de pintar
-      // y que html-to-image no use versiones intermedias
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Esperar dos frames para que React termine de pintar el DOM
+      await new Promise(resolve => requestAnimationFrame(() => 
+        requestAnimationFrame(resolve)
+      ));
+      // Pausa adicional para que el browser pinte las imágenes
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Intentamos generar la imagen
-      const dataUrl = await toPng(frameRef.current, {
+      const dataUrl = await toPng(frameRef.current!, {
         cacheBust: true,
         pixelRatio: 3, 
         backgroundColor: '#ffffff',
         skipFonts: true,
-        // Forzamos a que no use caché interna si la tiene
-        includeGraphics: true,
       });
       
       const link = document.createElement('a');
@@ -208,17 +209,17 @@ export default function ImageGeneratorPage() {
                     <h3 className="font-bold text-lg">Vista Previa (9:16)</h3>
                     <Button 
                       onClick={handleDownload} 
-                      disabled={generating || !imageLoaded}
+                      disabled={generating || loadedProductId !== selectedProduct?.id}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       {generating ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : !imageLoaded ? (
+                      ) : loadedProductId !== selectedProduct?.id ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
                         <Download className="w-4 h-4 mr-2" />
                       )}
-                      {!imageLoaded ? "Cargando..." : "Descargar para WhatsApp"}
+                      {loadedProductId !== selectedProduct?.id ? "Cargando..." : "Descargar para WhatsApp"}
                     </Button>
                   </div>
 
@@ -244,8 +245,8 @@ export default function ImageGeneratorPage() {
                         alt={selectedProduct.nombre}
                         className="w-full h-full object-contain"
                         crossOrigin="anonymous"
-                        onLoad={() => setImageLoaded(true)}
-                        onError={() => setImageLoaded(true)} // Enable even on error to allow "empty" capture
+                        onLoad={() => setLoadedProductId(selectedProduct.id)}
+                        onError={() => setLoadedProductId(selectedProduct.id)} // Enable even on error to allow "empty" capture
                       />
                       
                       {/* Logo Superpuesto */}
