@@ -105,16 +105,16 @@ export default function CapturePage() {
       </div>
 
       {/* Área de Contenido Principal */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 min-h-0 items-center">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 min-h-0 pt-6 px-2">
         
         {/* Lado Izquierdo: Imagen y Contacto */}
-        <div className="flex flex-col h-full space-y-4 min-h-0">
-          <div className="flex-1 relative rounded-2xl overflow-hidden bg-slate-50 border-2 border-slate-100 flex items-center justify-center min-h-0">
+        <div className="flex flex-col h-full space-y-4 min-h-0 justify-start">
+          <div className="flex-[3] relative rounded-2xl overflow-hidden bg-slate-50 border-2 border-slate-100 flex items-center justify-center min-h-0">
             {product.imagen_url ? (
               <img 
                 src={product.imagen_url} 
                 alt={product.nombre} 
-                className="max-w-full max-h-full object-contain p-2"
+                className="max-w-full max-h-full object-contain p-4"
               />
             ) : (
               <div className="text-slate-200 uppercase font-black tracking-widest text-xs tracking-tighter">Sin Imagen</div>
@@ -131,13 +131,13 @@ export default function CapturePage() {
                 {config?.whatsapp_number && (
                   <div className="flex flex-col">
                     <span className="text-[8px] font-black uppercase text-slate-400 mb-0.5">Ventas WhatsApp</span>
-                    <span className="text-sm lg:text-base font-black text-[#2E3A52] tabular-nums">{config.whatsapp_number}</span>
+                    <span className="text-sm font-black text-[#2E3A52] tabular-nums leading-none">{config.whatsapp_number}</span>
                   </div>
                 )}
                 {config?.whatsapp_24_7 && (
                   <div className="flex flex-col">
                     <span className="text-[8px] font-black uppercase text-slate-400 mb-0.5">Servicio 24/7</span>
-                    <span className="text-sm lg:text-base font-black text-[#2E3A52] tabular-nums">{config.whatsapp_24_7}</span>
+                    <span className="text-sm font-black text-[#2E3A52] tabular-nums leading-none">{config.whatsapp_24_7}</span>
                   </div>
                 )}
                 {locations.slice(0, 2).map(loc => (
@@ -146,7 +146,7 @@ export default function CapturePage() {
                       <MapPin className="w-2 h-2" />
                       {loc.name}
                     </div>
-                    <span className="text-[11px] font-black text-slate-700 truncate">{loc.phone || 'Ver en web'}</span>
+                    <span className="text-[10px] font-black text-slate-700 truncate leading-none">{loc.phone || 'Ver en web'}</span>
                   </div>
                 ))}
               </div>
@@ -155,42 +155,42 @@ export default function CapturePage() {
         </div>
 
         {/* Lado Derecho: Producto y Precios */}
-        <div className="h-full flex flex-col justify-center space-y-6 py-4 min-h-0 text-left">
-          <div className="space-y-3">
-            <h1 className="text-3xl lg:text-5xl font-black text-[#2E3A52] tracking-tighter uppercase leading-[0.9] lg:leading-[0.85]">
+        <div className="h-full flex flex-col justify-start space-y-4 min-h-0 text-left">
+          <div className="space-y-1 flex-shrink-0">
+            <h1 className="text-2xl lg:text-3xl xl:text-4xl font-black text-[#2E3A52] tracking-tighter uppercase leading-[1] lg:leading-[0.95]">
               {product.nombre}
             </h1>
-            <div className="flex items-center gap-2">
-              <Badge className="bg-slate-100 text-slate-600 font-bold border-none px-3 py-1 uppercase tracking-tighter text-[10px]">
+            <div className="flex items-center gap-2 pt-1">
+              <Badge className="bg-slate-100 text-slate-600 font-bold border-none px-3 py-0.5 uppercase tracking-tighter text-[9px]">
                 {product.categoria}
               </Badge>
               {product.stock > 0 && (
-                <Badge className="bg-emerald-500 text-white font-black border-none px-3 py-1 uppercase tracking-tighter text-[10px]">
+                <Badge className="bg-emerald-500 text-white font-black border-none px-3 py-0.5 uppercase tracking-tighter text-[10px]">
                   Stock Disponible
                 </Badge>
               )}
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-slate-400 uppercase text-[10px] font-black tracking-widest border-b pb-1 border-slate-100">
-              <ListChecks className="w-4 h-4 text-slate-300" /> Especificaciones Principales
+          <div className="space-y-2 flex-1 min-h-0 overflow-hidden">
+            <div className="flex items-center gap-2 text-slate-400 uppercase text-[9px] font-black tracking-widest border-b pb-1 border-slate-100">
+              <ListChecks className="w-3.5 h-3.5 text-slate-300" /> Especificaciones Principales
             </div>
-            <p className="text-slate-600 text-base lg:text-lg leading-snug whitespace-pre-wrap font-medium line-clamp-5 xl:line-clamp-none">
+            <p className="text-slate-600 text-xs xl:text-sm leading-snug whitespace-pre-wrap font-medium line-clamp-6">
               {description}
             </p>
           </div>
 
-          {/* Bloque de Precios */}
-          <div className="space-y-4">
-            <div className="bg-gradient-to-br from-[#D91E7A] to-[#6B4199] text-white py-5 px-8 rounded-3xl text-center shadow-2xl shadow-purple-200/50">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-80">Precio Especial Contado</p>
-              <p className="text-5xl lg:text-7xl font-black tracking-tighter leading-none">
+          {/* Bloque de Precios (Siempre abajo o al final del espacio disponible) */}
+          <div className="space-y-3 pt-2 flex-shrink-0">
+            <div className="bg-gradient-to-br from-[#D91E7A] to-[#6B4199] text-white py-4 px-6 rounded-3xl text-center shadow-2xl shadow-purple-200/50">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1 opacity-80">Precio Especial Contado</p>
+              <p className="text-4xl lg:text-5xl font-black tracking-tighter leading-none">
                 {formatCurrency(prices.precioContado)}
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               {prices.disponible6Meses && (
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center justify-center">
                   <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">6 Meses</span>
