@@ -41,11 +41,21 @@ export default function ImageGeneratorPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [captureKey, setCaptureKey] = useState(0);
   const frameRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // Reset image loaded status when selecting a product
+  useEffect(() => {
+    if (selectedProduct) {
+      setImageLoaded(false);
+      setCaptureKey(prev => prev + 1);
+    }
+  }, [selectedProduct]);
 
   const loadData = async () => {
     setLoading(true);
@@ -87,18 +97,18 @@ export default function ImageGeneratorPage() {
   };
 
   const handleDownload = async () => {
-    if (!frameRef.current || !selectedProduct) return;
+    if (!frameRef.current || !selectedProduct || !imageLoaded) return;
     const productToDownload = { ...selectedProduct };
     setGenerating(true);
     try {
-      // Esperamos un poco para asegurar que las imágenes estén cargadas
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Un pequeño retraso para asegurar el pintado final
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const dataUrl = await toPng(frameRef.current, {
         cacheBust: true,
-        pixelRatio: 3, // 360 * 3 = 1080, 640 * 3 = 1920
+        pixelRatio: 3, 
         backgroundColor: '#ffffff',
-        skipFonts: true, // A veces las fuentes externas causan problemas
+        skipFonts: true,
       });
       
       const link = document.createElement('a');
@@ -189,20 +199,32 @@ export default function ImageGeneratorPage() {
                     <h3 className="font-bold text-lg">Vista Previa (9:16)</h3>
                     <Button 
                       onClick={handleDownload} 
-                      disabled={generating}
+                      disabled={generating || !imageLoaded}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       {generating ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : !imageLoaded ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
                         <Download className="w-4 h-4 mr-2" />
                       )}
-                      Descargar para WhatsApp
+                      {!imageLoaded ? "Cargando..." : "Descargar para WhatsApp"}
                     </Button>
                   </div>
 
+                  <Button
+                    variant="outline"
+                    className="w-full max-w-[360px] border-[#6B4199] text-[#6B4199] hover:bg-purple-50 font-black uppercase tracking-tighter"
+                    onClick={() => window.open(`/owner/image-generator/capture/${selectedProduct.id}`, '_blank')}
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Abrir Página de Captura (Full Layout)
+                  </Button>
+
                   {/* El Frame 9:16 */}
                   <div 
+                    key={captureKey}
                     ref={frameRef}
                     className="w-[360px] h-[640px] bg-white shadow-2xl overflow-hidden relative flex flex-col"
                   >
@@ -213,6 +235,8 @@ export default function ImageGeneratorPage() {
                         alt={selectedProduct.nombre}
                         className="w-full h-full object-contain"
                         crossOrigin="anonymous"
+                        onLoad={() => setImageLoaded(true)}
+                        onError={() => setImageLoaded(true)} // Enable even on error to allow "empty" capture
                       />
                       
                       {/* Logo Superpuesto */}
