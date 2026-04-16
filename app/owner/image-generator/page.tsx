@@ -42,6 +42,8 @@ export default function ImageGeneratorPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [loadedProductId, setLoadedProductId] = useState<string | null>(null);
+  const [productImageB64, setProductImageB64] = useState<string | null>(null);
+  const [logoImageB64, setLogoImageB64] = useState<string | null>(null);
   const [captureKey, setCaptureKey] = useState(0);
   const [urlTimestamp, setUrlTimestamp] = useState(Date.now());
   const frameRef = useRef<HTMLDivElement>(null);
@@ -50,14 +52,49 @@ export default function ImageGeneratorPage() {
     loadData();
   }, []);
 
-  // Reset image loaded status when selecting a product
+  const toBase64 = async (url: string) => {
+    if (!url) return null;
+    try {
+      // Usamos cache: 'no-store' y un random para bypass total del proxy cache
+      // Agregamos un fallback por si el fetch falla
+      const targetUrl = url.includes('?') ? `${url}&rnd=${Math.random()}` : `${url}?rnd=${Math.random()}`;
+      const res = await fetch(targetUrl, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const blob = await res.blob();
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error("Error converting to base64:", e);
+      // Fallback: tratar de usar la URL original si el fetch base64 falla (aunque esto arriesgue cache)
+      return url; 
+    }
+  };
+
+  // Reset image loaded status and pre-fetch base64 when selecting a product
   useEffect(() => {
     if (selectedProduct) {
       setLoadedProductId(null);
+      setProductImageB64(null);
       setCaptureKey(prev => prev + 1);
       setUrlTimestamp(Date.now());
+
+      // Pre-fetch images as base64
+      const fetchImages = async () => {
+        const imgB64 = await toBase64(getProxiedUrl(selectedProduct.imagen_url));
+        setProductImageB64(imgB64);
+        
+        if (storeConfig?.logo_url) {
+          const logoB64 = await toBase64(getProxiedUrl(storeConfig.logo_url));
+          setLogoImageB64(logoB64);
+        }
+      };
+      
+      fetchImages();
     }
-  }, [selectedProduct?.id]);
+  }, [selectedProduct?.id, storeConfig?.logo_url]);
 
   const loadData = async () => {
     setLoading(true);
@@ -100,7 +137,8 @@ export default function ImageGeneratorPage() {
 
   const handleDownload = async () => {
     if (!frameRef.current || !selectedProduct) return;
-    if (loadedProductId !== selectedProduct.id) return; // guardia extra
+    // Aseguramos que el base64 está listo y coincide con el producto actual
+    if (loadedProductId !== selectedProduct.id || !productImageB64) return;
     
     // Capturamos el producto actual para el nombre del archivo
     const productToDownload = { ...selectedProduct };
@@ -209,17 +247,17 @@ export default function ImageGeneratorPage() {
                     <h3 className="font-bold text-lg">Vista Previa (9:16)</h3>
                     <Button 
                       onClick={handleDownload} 
-                      disabled={generating || loadedProductId !== selectedProduct?.id}
-                      className="bg-green-600 hover:bg-green-700"
+                      disabled={generating || loadedProductId !== selectedProduct?.id || !productImageB64}
+                      className="bg-green-600 hover:bg-green-700 transition-all active:scale-95"
                     >
                       {generating ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : loadedProductId !== selectedProduct?.id ? (
+                      ) : (loadedProductId !== selectedProduct?.id || !productImageB64) ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
                         <Download className="w-4 h-4 mr-2" />
                       )}
-                      {loadedProductId !== selectedProduct?.id ? "Cargando..." : "Descargar para WhatsApp"}
+                      {(loadedProductId !== selectedProduct?.id || !productImageB64) ? "Cargando..." : "Descargar para WhatsApp"}
                     </Button>
                   </div>
 
@@ -240,24 +278,30 @@ export default function ImageGeneratorPage() {
                   >
                     {/* 50% Imagen del Producto */}
                     <div className="h-[320px] relative bg-white overflow-hidden flex items-center justify-center p-4">
-                      <img 
-                        src={getProxiedUrl(selectedProduct.imagen_url)} 
-                        alt={selectedProduct.nombre}
-                        className="w-full h-full object-contain"
-                        crossOrigin="anonymous"
-                        onLoad={() => setLoadedProductId(selectedProduct.id)}
-                        onError={() => setLoadedProductId(selectedProduct.id)} // Enable even on error to allow "empty" capture
-                      />
+                      {productImageB64 ? (
+                        <img 
+                          src={productImageB64} 
+                          alt={selectedProduct.nombre}
+                          className="w-full h-full object-contain"
+                          onLoad={() => setLoadedProductId(selectedProduct.id)}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center space-x-2 text-slate-400">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-xs font-bold uppercase tracking-widest">Iniciando...</span>
+                        </div>
+                      )}
                       
                       {/* Logo Superpuesto */}
                       <div className="absolute top-6 left-6 drop-shadow-xl">
-                        {storeConfig?.logo_url ? (
+                        {logoImageB64 ? (
                           <img 
-                            src={getProxiedUrl(storeConfig.logo_url)} 
+                            src={logoImageB64} 
                             alt="Logo" 
                             className="h-7 object-contain" 
-                            crossOrigin="anonymous"
                           />
+                        ) : storeConfig?.logo_url ? (
+                           <div className="w-10 h-4 bg-slate-100 animate-pulse rounded" />
                         ) : (
                           <h2 className="text-sm font-black uppercase tracking-tighter text-[#2E3A52] bg-white/90 px-2 py-1 rounded-lg shadow-sm">
                             {storeConfig?.store_name || "Don Negro"}
